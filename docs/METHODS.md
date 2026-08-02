@@ -13,7 +13,7 @@ expected by the selected method. The TIGER examples use a centred
 **liability-scale PRS** and matching liability-scale R². Prepare the target and
 population-reference scores consistently before probability conversion; do not
 use an unconverted raw or merely standardized PRS. See
-[`BPC_INPUT_GUIDE.md`](BPC_INPUT_GUIDE.md) and the runnable TIGER example at
+[`LIABILITY_PRS_GUIDE.md`](LIABILITY_PRS_GUIDE.md) and the runnable TIGER example at
 [`examples/liability_conversion_example.R`](../examples/liability_conversion_example.R).
 
 ## Default worked-example settings
@@ -58,7 +58,7 @@ being scored give an in-sample descriptive result, not prospective validation.
 
 `bpc_probability()` applies Bayesian polygenic score Probability Conversion to
 a correctly centred liability-scale PRS. Follow the detailed
-[`BPC_INPUT_GUIDE.md`](BPC_INPUT_GUIDE.md).
+[`LIABILITY_PRS_GUIDE.md`](LIABILITY_PRS_GUIDE.md).
 
 ### GenoPred
 

@@ -1,7 +1,7 @@
 \name{TIGER-functions}
 \alias{effective_sample_size}
-\alias{bpc_liability_scale_factor}
-\alias{prepare_bpc_inputs}
+\alias{liability_prs_scale_factor}
+\alias{prepare_liability_prs_inputs}
 \alias{prepare_sbayesr_summary_statistics}
 \alias{observed_to_liability_r2}
 \alias{liability_to_observed_r2}

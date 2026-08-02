@@ -17,13 +17,13 @@ target <- read.csv(tiger_example_file("example_target_prs_observed.csv"))
 reference <- read.csv(tiger_example_file("example_reference_prs_observed.csv"))
 
 K <- 0.01
-SP <- 0.50
+SP_score <- 0.50
 
-converted <- prepare_bpc_inputs(
+converted <- prepare_liability_prs_inputs(
   target_prs_observed = target$PRS_observed,
   reference_prs_observed = reference$PRS_observed,
   K = K,
-  SP = SP,
+  SP = SP_score,
   center_on_reference = FALSE
 )
 
@@ -33,7 +33,7 @@ r2_liability <- converted$r2_liability
 
 Use `center_on_reference = FALSE` when both scores were already centred using
 the same population-reference allele frequencies. See
-[`BPC_INPUT_GUIDE.md`](BPC_INPUT_GUIDE.md) for the complete preparation and QC
+[`LIABILITY_PRS_GUIDE.md`](LIABILITY_PRS_GUIDE.md) for the complete preparation and QC
 workflow. A runnable example is in `examples/liability_conversion_example.R`.
 
 ## 2. Read the separate input records

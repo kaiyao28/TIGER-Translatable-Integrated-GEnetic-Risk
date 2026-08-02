@@ -32,4 +32,4 @@ probability only when the reference evidence and intended interpretation are
 population-level.
 
 The repository provides the full guides under `docs/`: `GETTING_STARTED.md`,
-`USAGE.md`, `BPC_INPUT_GUIDE.md`, `AD_APOE_GUIDE.md`, and `METHODS.md`.
+`USAGE.md`, `LIABILITY_PRS_GUIDE.md`, `AD_APOE_GUIDE.md`, and `METHODS.md`.

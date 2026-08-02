@@ -28,10 +28,10 @@ effective_sample_size <- function(n_cases, n_controls) {
   4 / (1 / n_cases + 1 / n_controls)
 }
 
-# BPC liability multiplier for a PRS on the standardised observed scale with
-# ascertainment SP. BPC commonly uses SP = 0.5 because Neff is supplied to the
-# Bayesian PRS method.
-bpc_liability_scale_factor <- function(K, SP = 0.5) {
+# Liability multiplier for a PRS on the standardised observed scale with
+# ascertainment SP. SP = 0.5 is used when the score construction represents a
+# balanced case-control setting through effective sample size.
+liability_prs_scale_factor <- function(K, SP = 0.5) {
   .check_probability(K, "K")
   .check_probability(SP, "SP")
   threshold <- -stats::qnorm(K)
@@ -43,9 +43,9 @@ bpc_liability_scale_factor <- function(K, SP = 0.5) {
 # estimate R2_liability as the variance of the reference PRS. Scores must have
 # been constructed with the same SNPs, posterior effects and reference-allele
 # centring. Set center_on_reference only if scores were not already centred.
-prepare_bpc_inputs <- function(target_prs_observed, reference_prs_observed,
-                               K, SP = 0.5,
-                               center_on_reference = FALSE) {
+prepare_liability_prs_inputs <- function(
+    target_prs_observed, reference_prs_observed,
+    K, SP = 0.5, center_on_reference = FALSE) {
   if (!is.numeric(target_prs_observed) ||
       any(!is.finite(target_prs_observed)) ||
       !length(target_prs_observed)) stop("target PRS must be finite numeric")
@@ -59,7 +59,7 @@ prepare_bpc_inputs <- function(target_prs_observed, reference_prs_observed,
     target_prs_observed <- target_prs_observed - reference_mean
     reference_prs_observed <- reference_prs_observed - reference_mean
   }
-  multiplier <- bpc_liability_scale_factor(K, SP)
+  multiplier <- liability_prs_scale_factor(K, SP)
   target_liability <- target_prs_observed * multiplier
   reference_liability <- reference_prs_observed * multiplier
   list(
@@ -89,7 +89,7 @@ prepare_sbayesr_summary_statistics <- function(beta, standard_error,
 }
 
 # Convert observed-scale variance explained to the liability scale using the
-# Lee et al. transformation employed by the BPC workflow.
+# Lee et al. observed-to-liability transformation.
 observed_to_liability_r2 <- function(r2_observed, K, SP = 0.5) {
   .check_r2(r2_observed, "r2_observed")
   .check_probability(K, "K")

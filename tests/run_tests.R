@@ -22,8 +22,8 @@ stopifnot(
   abs(prepared_sbayesr$beta_50_50 - 0.1 / (0.02 * sqrt(1000))) < 1e-12,
   abs(prepared_sbayesr$standard_error_50_50 - 1 / sqrt(1000)) < 1e-12
 )
-scale_factor <- bpc_liability_scale_factor(K, SP)
-prepared_bpc <- prepare_bpc_inputs(
+scale_factor <- liability_prs_scale_factor(K, SP)
+prepared_bpc <- prepare_liability_prs_inputs(
   target_prs_observed = prs / scale_factor,
   reference_prs_observed = reference / scale_factor,
   K = K, SP = SP

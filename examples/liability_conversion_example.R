@@ -16,17 +16,18 @@ reference <- read.csv(
 )
 
 K <- 0.01
-SP <- 0.50
+SP_score <- 0.50  # score-construction ascertainment
+SP <- 0.50        # target probability prior
 
 # These example scores are treated as already centred with the same
 # population-reference allele frequencies. In a real analysis, target and
 # reference scores must use the same SNPs, alleles, posterior effects and
 # centring procedure.
-converted <- prepare_bpc_inputs(
+converted <- prepare_liability_prs_inputs(
   target_prs_observed = target$PRS_observed,
   reference_prs_observed = reference$PRS_observed,
   K = K,
-  SP = SP,
+  SP = SP_score,
   center_on_reference = FALSE
 )
 

@@ -24,6 +24,62 @@ APOE and RV are separate optional components. APOE is not treated as an RV.
    calculation level (`SP_RV`; default 0.50 for a balanced sample).
 5. Calculate PRS only, PRS + RV, PRS + APOE, or the combined probability.
 
+### First prepare the liability-scale PRS
+
+TIGER probability functions do not take an unprocessed PRS directly. Prepare:
+
+- the target-sample PRS on the observed scale; and
+- PRSs from an ancestry-matched population reference sample.
+
+Both sets of scores must use the same variants, effect estimates, effect
+alleles, and population-reference allele-frequency centring. Convert them with
+the disorder prevalence and sample prevalence used for score construction:
+
+```r
+K <- 0.01          # justified population prevalence
+SP_score <- 0.50   # ascertainment represented during PRS construction
+
+converted <- prepare_liability_prs_inputs(
+  target_prs_observed = target$PRS_observed,
+  reference_prs_observed = reference$PRS_observed,
+  K = K,
+  SP = SP_score,
+  center_on_reference = FALSE
+)
+
+individuals$PRS_liability <- converted$target_prs_liability
+reference_prs_liability <- converted$reference_prs_liability
+r2_liability <- converted$r2_liability
+```
+
+Use `center_on_reference = FALSE` when both input scores were already centred
+using the same reference allele frequencies. Do not independently standardise
+the target and reference PRSs. The converted PRS and its matching
+reference-derived liability-scale R² must remain together in subsequent
+analyses. `SP_score` controls the scale conversion. The later `SP` controls the
+probability prior in the target context and need not always equal `SP_score`.
+
+If reference-derived liability-scale R² is unavailable, a compatible
+observed-scale R² from an independently evaluated or leave-one-out PRS analysis
+may be converted instead:
+
+```r
+r2_liability <- observed_to_liability_r2(
+  r2_observed = reported_r2_observed,
+  K = K,
+  SP = SP_evaluation
+)
+```
+
+`SP_evaluation` must be the case proportion in the sample where the reported R²
+was estimated. The reported PRS must match the target score construction and
+ancestry closely enough to justify transfer. The converted `r2_liability` can
+then be used by BPC, GenoPred, and PAIR (summary). PAIR (sample) instead uses
+externally estimated case/control PRS moments.
+
+See the [full preparation and QC guide](docs/LIABILITY_PRS_GUIDE.md) and
+the runnable [`liability_conversion_example.R`](examples/liability_conversion_example.R).
+
 The worked-example defaults are:
 
 ```r
@@ -51,13 +107,15 @@ Install the development version directly from GitHub:
 
 ```r
 install.packages("remotes") # once, if needed
-remotes::install_github("OWNER/TIGER", build_vignettes = FALSE)
+remotes::install_github(
+  "kaiyao28/TIGER-Translatable-Integrated-Genetic-Risk-Framework",
+  build_vignettes = FALSE
+)
 library(TIGER)
 ```
 
-Replace `OWNER` with the repository owner after publication. Package functions
-remain plain, reviewable R source under `R/`; installation does not hide the
-implementation.
+Package functions remain plain, reviewable R source under `R/`; installation
+does not hide the implementation.
 
 From the `TIGER` directory:
 
@@ -288,7 +346,7 @@ subsets—is in [`USAGE.md`](docs/USAGE.md) and
 | [`PLOTTING.md`](docs/PLOTTING.md)               | Point styling, group colours, legends and ggplot editing |
 | [`DATA.md`](docs/DATA.md)                       | PRS, APOE, RV-reference and individual-status schemas    |
 | [`REFERENCE_DATA.md`](docs/REFERENCE_DATA.md)   | Separate SCZ/AD references and custom-reference creation |
-| [`BPC_INPUT_GUIDE.md`](docs/BPC_INPUT_GUIDE.md) | Liability-scale PRS preparation and quality control      |
+| [`LIABILITY_PRS_GUIDE.md`](docs/LIABILITY_PRS_GUIDE.md) | Liability-scale PRS preparation for all methods          |
 | [`AD_APOE_GUIDE.md`](docs/AD_APOE_GUIDE.md)     | APOE-region exclusion and AD/APOE application            |
 | [`REFERENCES.md`](docs/REFERENCES.md)           | Method publications and adaptations                      |
 

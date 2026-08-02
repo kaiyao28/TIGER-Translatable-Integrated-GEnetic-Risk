@@ -114,7 +114,7 @@ Do not place identifiable individual-level data in a public repository.
 The `PRS_liability` field in the example individual table is already on the
 liability scale. Users must prepare their own target and population-reference
 PRSs consistently and perform the required liability conversion before using
-TIGER. See [`BPC_INPUT_GUIDE.md`](BPC_INPUT_GUIDE.md) and the runnable
+TIGER. See [`LIABILITY_PRS_GUIDE.md`](LIABILITY_PRS_GUIDE.md) and the runnable
 `examples/liability_conversion_example.R`.
 
 ## Redistribution and provenance

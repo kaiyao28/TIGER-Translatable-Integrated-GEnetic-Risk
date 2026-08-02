@@ -16,8 +16,8 @@ r2_liability_target <- 0.10
 r2_observed <- liability_to_observed_r2(r2_liability_target, K, SP)
 reference_prs_observed <- stats::rnorm(500, 0, sqrt(r2_observed))
 target_prs_observed <- seq(-0.8, 0.8, length.out = 9) /
-  bpc_liability_scale_factor(K, SP = 0.5)
-prepared <- prepare_bpc_inputs(
+  liability_prs_scale_factor(K, SP = 0.5)
+prepared <- prepare_liability_prs_inputs(
   target_prs_observed, reference_prs_observed,
   K = K, SP = 0.5, center_on_reference = FALSE
 )
