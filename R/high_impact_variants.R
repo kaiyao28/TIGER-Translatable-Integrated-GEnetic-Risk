@@ -106,6 +106,13 @@ high_impact_prevalence_parameters <- function(reference, K, SP = 0.5) {
     K * reference$Case_freq / population_denominator
   reference$SP_genotype <-
     SP * reference$Case_freq / sample_denominator
+  if (any(reference$K_genotype <= 0 | reference$K_genotype >= 1) ||
+      any(reference$SP_genotype <= 0 | reference$SP_genotype >= 1)) {
+    stop(
+      "method-specific high-impact updates require positive case and control ",
+      "frequency for every genotype"
+    )
+  }
   reference
 }
 

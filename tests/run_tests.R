@@ -44,6 +44,9 @@ stopifnot(all(vapply(outputs, function(x) {
     all(x >= 0) && all(x <= 1)
 }, logical(1))))
 stopifnot(all(vapply(outputs, function(x) all(diff(x) >= 0), logical(1))))
+extreme_bpc <- bpc_probability(c(-100, 100), K, SP, r2l)
+stopifnot(all(is.finite(extreme_bpc)), all(extreme_bpc >= 0),
+          all(extreme_bpc <= 1))
 
 pair_summary <- pair_probability_summary(prs, K, SP, r2l)
 stopifnot(identical(pair_probability(prs, K, SP, r2l), pair_summary))
@@ -82,6 +85,9 @@ reference_table <- data.frame(
 )
 clean <- prepare_rv_reference(reference_table)
 stopifnot(nrow(clean) == 2L, identical(clean$Direction, c("Damaging", "Protective")))
+duplicate_reference <- transform(reference_table, ID = c("RV1", "RV1"))
+stopifnot(inherits(try(prepare_rv_reference(duplicate_reference), silent = TRUE),
+                     "try-error"))
 
 scz_ptv_test <- harmonise_scz_reference(data.frame(
   ID = "ENSG1", Symbol = "GENE1", CAP_freq = 0.01,
@@ -180,6 +186,16 @@ stopifnot(
   carrier_update$probability_after[3] < 0.1,
   abs(carrier_update$probability_after[4] - 0.1) < 1e-12
 )
+named_probabilities <- stats::setNames(rep(0.1, 4), rownames(carrier_matrix))
+stopifnot(nrow(apply_rv_carriers(
+  named_probabilities, carrier_matrix,
+  odds_ratios = c(D1 = 4, D2 = 8, P1 = 0.4), prevalence = K
+)) == 4L)
+misordered_probabilities <- named_probabilities[rev(seq_along(named_probabilities))]
+stopifnot(inherits(try(apply_rv_carriers(
+  misordered_probabilities, carrier_matrix,
+  odds_ratios = c(D1 = 4, D2 = 8, P1 = 0.4), prevalence = K
+), silent = TRUE), "try-error"))
 
 if (requireNamespace("ggplot2", quietly = TRUE)) {
   plot_carriers <- c(FALSE, TRUE, FALSE, TRUE, FALSE)
@@ -231,6 +247,7 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
     carrier_probability_before = c(0.1, 0.7),
     carrier_probability_after = c(0.3, 0.9),
     rv_count = c(1, 2),
+    show_rv_labels = TRUE, rv_labels = c("RV_A", "RV_A; RV_B"),
     rv_point_size = 2.5, rv_point_alpha = 0.4,
     rv_shapes = c("1 RV" = 21, "2+ RVs" = 24)
   )
@@ -239,7 +256,9 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
   carrier_point_layer <- carrier_point_build$data[[2]]
   stopifnot(
     identical(sort(unique(carrier_point_layer$shape)), c(21, 24)),
-    length(unique(carrier_point_layer$fill)) == 1L
+    length(unique(carrier_point_layer$fill)) == 1L,
+    identical(carrier_point_build$data[[3]]$label,
+              c("RV_A", "RV_A; RV_B"))
   )
   combined_plot <- plot_tiger_apoe_rv_carrier_points(
     prs_curve = seq(-4, 4, length.out = 41),
@@ -262,7 +281,7 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
   stopifnot(
     identical(sort(unique(combined_point_layer$shape)), c(21, 24)),
     length(unique(combined_point_layer$fill)) == 2L,
-    all(combined_point_layer$alpha == 0.30),
+    all(combined_point_layer$alpha == 1),
     identical(combined_plot$labels$fill, "Carrier group"),
     identical(combined_plot$labels$shape, "Number of RVs")
   )

@@ -102,7 +102,9 @@ The files under `inst/extdata/example/` are synthetic demonstrations only:
   scores used for conversion and liability-scale R² estimation;
 - `example_rv_reference.csv`: three illustrative RV effects;
 - `example_rv_carriers.csv`: presence-only carrier rows, including people with
-  one RV and more than one RV; and
+  one RV and more than one RV;
+- `example_carrier_groups.csv`: two synthetic external groups used only to
+  demonstrate carrier-point colours; and
 - `example_apoe_reference.csv`: illustrative case/control genotype frequencies.
 
 Do not place identifiable individual-level data in a public repository.

@@ -42,6 +42,7 @@ workflow. A runnable example is in `examples/liability_conversion_example.R`.
 individuals <- read.csv(tiger_example_file("example_individuals.csv"))
 apoe_status <- read.csv(tiger_example_file("example_apoe_status.csv"))
 rv_status <- read.csv(tiger_example_file("example_rv_carriers.csv"))
+carrier_groups <- read.csv(tiger_example_file("example_carrier_groups.csv"))
 
 rv_reference <- prepare_rv_reference(read.csv(
   tiger_example_file("example_rv_reference.csv")
@@ -177,21 +178,32 @@ p_sequence <- pair_probability_summary(
   prs_sequence, K = K, SP = SP, r2_liability = r2l
 )
 carrier_index <- rv_result$RV_count > 0
+carrier_group <- carrier_groups$Carrier_group[
+  match(individuals$ID[carrier_index], carrier_groups$ID)
+]
+rv_labels_by_id <- tapply(
+  rv_status$Variant_ID, rv_status$ID,
+  function(x) paste(unique(x), collapse = "; ")
+)
+rv_labels <- unname(rv_labels_by_id[individuals$ID[carrier_index]])
+group_colours <- c("Group A" = "#3182BD", "Group B" = "#E31A1C")
 plot_tiger_rv_carrier_points(
   prs_curve = prs_sequence,
   probability_curve = p_sequence,
   carrier_prs = individuals$PRS_liability[carrier_index],
   carrier_probability_before = p_prs[carrier_index],
   carrier_probability_after = rv_result$probability_after[carrier_index],
-  rv_count = rv_result$RV_count[carrier_index]
+  rv_count = rv_result$RV_count[carrier_index],
+  rv_labels = rv_labels,
+  carrier_group = carrier_group,
+  group_colours = group_colours
 )
 ```
 
-To compare externally defined groups, supply one label per carrier through
-`carrier_group`. Optional named `group_colours` can set their colours.
-Points are drawn translucently, whereas the group legend displays the same
-colours at full opacity. This keeps dense carrier overlays mild while retaining
-an unambiguous group key.
+To compare externally defined groups, supply one `carrier_group` per carrier
+and optional named `group_colours`. RV names are shown when `rv_labels` is
+supplied. Point opacity defaults to 1 and can be reduced with
+`rv_point_alpha`. See [`PLOTTING.md`](PLOTTING.md).
 
 ## 7. Plot APOE and combined APOE + RV
 
@@ -223,6 +235,9 @@ plot_tiger_apoe_rv_carrier_points(
   carrier_probability_after_rv =
     combined_result$probability_after[carrier_index],
   rv_count = rv_result$RV_count[carrier_index],
+  rv_labels = rv_labels,
+  carrier_group = carrier_group,
+  group_colours = group_colours,
   K = K, SP = SP, r2_liability = r2l
 )
 ```

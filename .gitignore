@@ -1,7 +1,9 @@
 .Rhistory
 .RData
 .Rproj.user/
-*.Rproj
+*.Rcheck/
+*.tar.gz
+tiger_results.csv
 renv/library/
 renv/staging/
 *.html

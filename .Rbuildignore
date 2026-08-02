@@ -3,3 +3,4 @@
 ^\.git$
 ^\.gitignore$
 ^\.\.Rcheck$
+^TIGER\.Rproj$

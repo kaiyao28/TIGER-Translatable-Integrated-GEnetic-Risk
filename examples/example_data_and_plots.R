@@ -15,6 +15,8 @@ rv_reference <- prepare_rv_reference(
 )
 rv_carriers <- read.csv(tiger_example_file("example_rv_carriers.csv"),
                         stringsAsFactors = FALSE)
+carrier_groups <- read.csv(tiger_example_file("example_carrier_groups.csv"),
+                           stringsAsFactors = FALSE)
 apoe_reference <- prepare_high_impact_reference(
   read.csv(tiger_example_file("example_apoe_reference.csv"), stringsAsFactors = FALSE)
 )
@@ -94,6 +96,22 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
     prs_sequence, K = plot_K, SP = plot_SP, r2_liability = plot_r2l
   )
   carrier_index <- rv_update$RV_count > 0
+  carrier_group_match <- match(individuals$ID[carrier_index], carrier_groups$ID)
+  if (anyNA(carrier_group_match)) {
+    stop("Example carrier group is missing for one or more RV carriers")
+  }
+  plotted_carrier_group <-
+    carrier_groups$Carrier_group[carrier_group_match]
+  rv_labels_by_id <- tapply(
+    rv_carriers$Variant_ID, rv_carriers$ID,
+    function(x) paste(unique(x), collapse = "; ")
+  )
+  plotted_rv_labels <- unname(
+    rv_labels_by_id[individuals$ID[carrier_index]]
+  )
+  plotted_group_colours <- c(
+    "Group A" = "#3182BD", "Group B" = "#E31A1C"
+  )
   rv_plot <- plot_tiger_rv_carrier_points(
     prs_curve = prs_sequence,
     probability_curve = plot_p_prs,
@@ -101,6 +119,9 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
     carrier_probability_before = individuals$Probability_PRS[carrier_index],
     carrier_probability_after = individuals$Probability_PRS_RV[carrier_index],
     rv_count = individuals$RV_count[carrier_index],
+    rv_labels = plotted_rv_labels,
+    carrier_group = plotted_carrier_group,
+    group_colours = plotted_group_colours,
     probability_method = "PAIR (summary)"
   )
   ggplot2::ggsave(
@@ -131,11 +152,14 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
     carrier_probability_after_rv =
       individuals$Probability_PRS_APOE_RV[carrier_index],
     rv_count = individuals$RV_count[carrier_index],
+    rv_labels = plotted_rv_labels,
+    carrier_group = plotted_carrier_group,
+    group_colours = plotted_group_colours,
     probability_method = "PAIR (summary)",
     K = K, SP = SP, r2_liability = r2_liability
   )
   ggplot2::ggsave(
     file.path(figure_dir, "apoe_rv_carrier_points_v1.png"), apoe_rv_plot,
-    width = 8.5, height = 6.5, dpi = 160
+    width = 10.5, height = 6.5, dpi = 160
   )
 }

@@ -13,7 +13,7 @@
 # Shared RV-carrier point specification. Fill is reserved for optional external
 # groups. Shape alone identifies whether one or multiple RVs are carried.
 .tiger_rv_shapes <- c("No RV" = 22, "1 RV" = 21, "2+ RVs" = 24)
-.tiger_rv_point_alpha <- 0.30
+.tiger_rv_point_alpha <- 1
 .tiger_rv_point_size <- 1.25
 .tiger_rv_shape_legend <- list(
   alpha = 0.90, size = 3.2, fill = "grey65",
@@ -23,6 +23,30 @@
   alpha = 1.00, size = 3.2, shape = 21,
   colour = "grey25", stroke = 0.45
 )
+
+# Add optional RV-name labels. ggrepel provides guide lines when labels would
+# otherwise collide. Keeping it optional avoids making plotting dependencies
+# mandatory for users who do not need labels.
+.add_tiger_rv_labels <- function(plot, data, y_column) {
+  mapping <- ggplot2::aes(x = PRS)
+  mapping$y <- as.name(y_column)
+  mapping$label <- as.name("RV_label")
+  if (requireNamespace("ggrepel", quietly = TRUE)) {
+    plot + ggrepel::geom_text_repel(
+      data = data, mapping = mapping, inherit.aes = FALSE,
+      size = 3, colour = "grey15", box.padding = 0.25,
+      point.padding = 0.15, min.segment.length = 0,
+      segment.colour = "grey55", segment.size = 0.3,
+      max.overlaps = Inf
+    )
+  } else {
+    plot + ggplot2::geom_text(
+      data = data, mapping = mapping, inherit.aes = FALSE,
+      nudge_y = 0.02, size = 3, colour = "grey15",
+      check_overlap = TRUE
+    )
+  }
+}
 
 .check_tiger_point_style <- function(size, alpha, border, stroke, shapes,
                                      required_shapes) {
@@ -58,8 +82,9 @@
       any(!nzchar(trimws(carrier_group)))) {
     stop("carrier_group must contain one non-empty group label per person")
   }
-  levels <- unique(carrier_group)
+  observed_levels <- unique(carrier_group)
   if (is.null(group_colours)) {
+    levels <- observed_levels
     colours <- if (length(levels) == 1L) {
       stats::setNames("#7F7F7F", levels)
     } else {
@@ -67,9 +92,10 @@
     }
   } else {
     if (is.null(names(group_colours)) ||
-        !all(levels %in% names(group_colours))) {
+        !all(observed_levels %in% names(group_colours))) {
       stop("group_colours must be a named vector covering every carrier group")
     }
+    levels <- names(group_colours)[names(group_colours) %in% observed_levels]
     colours <- group_colours[levels]
   }
   list(
@@ -113,6 +139,7 @@ plot_tiger_before_after_rv <- function(
     prs, probability_before, probability_after,
     rv_carrier = NULL, rv_count = NULL, carrier_group = NULL,
     group_colours = NULL, show_rv_points = TRUE,
+    show_rv_labels = TRUE, rv_labels = NULL,
     point_selection = c("carriers", "all"), n_prs_bins = 50,
     probability_method = "PAIR (summary)", y_limits = NULL,
     rv_point_size = .tiger_rv_point_size,
@@ -159,6 +186,10 @@ plot_tiger_before_after_rv <- function(
       any((rv_count > 0) != rv_carrier)) {
     stop("rv_count must be non-negative integers consistent with rv_carrier")
   }
+  if (isTRUE(show_rv_labels) && !is.null(rv_labels) &&
+      (length(rv_labels) != n || anyNA(rv_labels))) {
+    stop("rv_labels must contain one non-missing label per person")
+  }
   groups <- .prepare_tiger_carrier_group(carrier_group, n, group_colours)
   .check_tiger_point_style(
     rv_point_size, rv_point_alpha, rv_point_border, rv_point_stroke,
@@ -188,7 +219,8 @@ plot_tiger_before_after_rv <- function(
     PRS = prs[point_index], Probability = probability_after[point_index],
     RV_group = ifelse(rv_count[point_index] >= 2, "2+ RVs",
                       ifelse(rv_count[point_index] == 1, "1 RV", "No RV")),
-    Carrier_group = groups$group[point_index]
+    Carrier_group = groups$group[point_index],
+    RV_label = if (is.null(rv_labels)) "" else as.character(rv_labels[point_index])
   )
   points$RV_group <- factor(
     points$RV_group, levels = c("No RV", "1 RV", "2+ RVs")
@@ -257,6 +289,9 @@ plot_tiger_before_after_rv <- function(
           override.aes = .tiger_group_legend
         )
       )
+    if (isTRUE(show_rv_labels) && !is.null(rv_labels)) {
+      plot <- .add_tiger_rv_labels(plot, points, "Probability")
+    }
   }
   plot
 }
@@ -427,6 +462,7 @@ plot_tiger_rv_carrier_points <- function(
     prs_curve, probability_curve,
     carrier_prs, carrier_probability_before, carrier_probability_after,
     rv_count, carrier_group = NULL, group_colours = NULL,
+    show_rv_labels = TRUE, rv_labels = NULL,
     probability_method = "PAIR (summary)", y_limits = c(0, 1),
     show_shift_segments = FALSE, rv_point_size = 2.1,
     rv_point_alpha = .tiger_rv_point_alpha,
@@ -457,6 +493,10 @@ plot_tiger_rv_carrier_points <- function(
       any(rv_count != as.integer(rv_count))) {
     stop("rv_count must contain positive integer counts for RV carriers")
   }
+  if (isTRUE(show_rv_labels) && !is.null(rv_labels) &&
+      (length(rv_labels) != n || anyNA(rv_labels))) {
+    stop("rv_labels must contain one non-missing label per carrier")
+  }
   groups <- .prepare_tiger_carrier_group(carrier_group, n, group_colours)
   .check_tiger_point_style(
     rv_point_size, rv_point_alpha, rv_point_border, rv_point_stroke,
@@ -468,7 +508,8 @@ plot_tiger_rv_carrier_points <- function(
     Probability_after = carrier_probability_after,
     RV_count_group = factor(ifelse(rv_count == 1, "1 RV", "2+ RVs"),
                             levels = c("1 RV", "2+ RVs")),
-    Carrier_group = groups$group
+    Carrier_group = groups$group,
+    RV_label = if (is.null(rv_labels)) "" else as.character(rv_labels)
   )
   method_text <- if (is.null(probability_method) ||
                      !nzchar(trimws(probability_method))) "" else
@@ -511,7 +552,7 @@ plot_tiger_rv_carrier_points <- function(
       linetype = "dashed"
     )
   }
-  plot + ggplot2::geom_point(
+  plot <- plot + ggplot2::geom_point(
     data = carriers,
     ggplot2::aes(PRS, Probability_after,
                  shape = RV_count_group, fill = Carrier_group),
@@ -519,6 +560,10 @@ plot_tiger_rv_carrier_points <- function(
     alpha = rv_point_alpha,
     size = rv_point_size, stroke = rv_point_stroke
   )
+  if (isTRUE(show_rv_labels) && !is.null(rv_labels)) {
+    plot <- .add_tiger_rv_labels(plot, carriers, "Probability_after")
+  }
+  plot
 }
 
 # Combined APOE + RV figure. Lines show PRS + APOE probability curves for all
@@ -529,6 +574,7 @@ plot_tiger_apoe_rv_carrier_points <- function(
     carrier_prs, carrier_apoe,
     carrier_probability_before_rv, carrier_probability_after_rv,
     rv_count, carrier_group = NULL, group_colours = NULL,
+    show_rv_labels = TRUE, rv_labels = NULL,
     probability_method = "PAIR (summary)", y_limits = c(0, 1),
     K = NULL, SP = 0.5, r2_liability = NULL,
     apoe_update = c("method-specific", "direct"),
@@ -591,6 +637,10 @@ plot_tiger_apoe_rv_carrier_points <- function(
       any(rv_count != as.integer(rv_count))) {
     stop("rv_count must contain positive integer counts for RV carriers")
   }
+  if (isTRUE(show_rv_labels) && !is.null(rv_labels) &&
+      (length(rv_labels) != n || anyNA(rv_labels))) {
+    stop("rv_labels must contain one non-missing label per carrier")
+  }
   groups <- .prepare_tiger_carrier_group(carrier_group, n, group_colours)
   .check_tiger_point_style(
     rv_point_size, rv_point_alpha, rv_point_border, rv_point_stroke,
@@ -603,7 +653,8 @@ plot_tiger_apoe_rv_carrier_points <- function(
     Probability_after_RV = carrier_probability_after_rv,
     RV_count_group = factor(ifelse(rv_count == 1, "1 RV", "2+ RVs"),
                             levels = c("1 RV", "2+ RVs")),
-    Carrier_group = groups$group
+    Carrier_group = groups$group,
+    RV_label = if (is.null(rv_labels)) "" else as.character(rv_labels)
   )
   genotype_colours <- c(
     "e4/e4" = "#7570B3", "e3/e4" = "#E6AB02", "e2/e4" = "#D95F02",
@@ -621,7 +672,7 @@ plot_tiger_apoe_rv_carrier_points <- function(
   method_text <- if (is.null(probability_method) ||
                      !nzchar(trimws(probability_method))) "" else
     paste0(": ", trimws(probability_method))
-  ggplot2::ggplot(
+  plot <- ggplot2::ggplot(
     curves,
     ggplot2::aes(PRS, Probability, colour = Genotype, linetype = Genotype)
   ) +
@@ -643,8 +694,8 @@ plot_tiger_apoe_rv_carrier_points <- function(
     ) +
     ggplot2::coord_cartesian(xlim = range(prs_curve), ylim = y_limits) +
     ggplot2::guides(
-      colour = ggplot2::guide_legend(nrow = 1, byrow = TRUE, order = 1),
-      linetype = ggplot2::guide_legend(nrow = 1, byrow = TRUE, order = 1),
+      colour = ggplot2::guide_legend(nrow = 2, byrow = TRUE, order = 1),
+      linetype = ggplot2::guide_legend(nrow = 2, byrow = TRUE, order = 1),
       shape = ggplot2::guide_legend(
         order = 2, nrow = 1, byrow = TRUE,
         override.aes = .tiger_rv_shape_legend
@@ -665,4 +716,8 @@ plot_tiger_apoe_rv_carrier_points <- function(
       )
     ) +
     tiger_plot_theme()
+  if (isTRUE(show_rv_labels) && !is.null(rv_labels)) {
+    plot <- .add_tiger_rv_labels(plot, carriers, "Probability_after_RV")
+  }
+  plot
 }

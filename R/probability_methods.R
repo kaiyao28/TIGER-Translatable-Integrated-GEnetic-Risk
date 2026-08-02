@@ -140,14 +140,17 @@ bpc_probability <- function(prs_liability, K, SP, r2_liability) {
     stop("r2_liability produces an invalid theoretical PRS variance")
   }
 
-  case_density <- stats::dnorm(
-    prs_liability, mean_case, sqrt(variance_case)
+  # Work on the log-odds scale so extreme PRS values do not cause both normal
+  # densities to underflow to zero and produce NaN.
+  log_case_density <- stats::dnorm(
+    prs_liability, mean_case, sqrt(variance_case), log = TRUE
   )
-  control_density <- stats::dnorm(
-    prs_liability, mean_control, sqrt(variance_control)
+  log_control_density <- stats::dnorm(
+    prs_liability, mean_control, sqrt(variance_control), log = TRUE
   )
-  SP * case_density /
-    (SP * case_density + (1 - SP) * control_density)
+  stats::plogis(
+    stats::qlogis(SP) + log_case_density - log_control_density
+  )
 }
 
 # Pain et al. quantile conversion with an optional population-prevalence
@@ -164,8 +167,14 @@ pain_probability <- function(prs_liability, reference_prs_liability,
   .check_r2(r2_observed, "r2_observed")
   .check_probability(K, "K")
   .check_probability(SP, "SP")
+  if (length(n_quantiles) != 1L || !is.finite(n_quantiles)) {
+    stop("n_quantiles must be one finite integer of at least 2")
+  }
   n_quantiles <- as.integer(n_quantiles)
   if (n_quantiles < 2L) stop("n_quantiles must be at least 2")
+  if (length(corrected) != 1L || is.na(corrected) || !is.logical(corrected)) {
+    stop("corrected must be TRUE or FALSE")
+  }
   if (r2_observed <= 1e-4) return(rep(SP, length(prs_liability)))
 
   ref_mean <- mean(reference_prs_liability, na.rm = TRUE)
@@ -262,8 +271,13 @@ pair_probability_summary <- function(prs_liability, K, SP = 0.5,
   k_control <- i_control * (i_control - threshold)
   m1 <- i_case * r2_liability
   m0 <- i_control * r2_liability
-  s1 <- sqrt(r2_liability - k_case * r2_liability^2)
-  s0 <- sqrt(r2_liability - k_control * r2_liability^2)
+  variance_case <- r2_liability - k_case * r2_liability^2
+  variance_control <- r2_liability - k_control * r2_liability^2
+  if (variance_case <= 0 || variance_control <= 0) {
+    stop("r2_liability produces an invalid theoretical PRS variance")
+  }
+  s1 <- sqrt(variance_case)
+  s0 <- sqrt(variance_control)
 
   .pair_probability_from_moments(
     prs_liability, m1, s1, m0, s0,

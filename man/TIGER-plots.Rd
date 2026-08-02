@@ -12,8 +12,11 @@ other common high-impact variants, and adjusted points for RV carriers.
 RV-carrier shape distinguishes one from multiple carried variants. Point fill
 is reserved for optional user-defined carrier groups and does not encode
 damaging or protective effect direction.
-The RV plotting functions expose point size, alpha, border, stroke and shape
-arguments directly and return standard \code{ggplot} objects for further
-editing. See \code{docs/PLOTTING.md} and \code{R/plotting.R}.
+The RV plotting functions expose point size, alpha, border, stroke, shape,
+group-colour and optional RV-label arguments directly. Labels are drawn when
+\code{rv_labels} is supplied and can be disabled with
+\code{show_rv_labels = FALSE}. The functions return standard \code{ggplot}
+objects for further editing. See \code{docs/PLOTTING.md} and
+\code{R/plotting.R}.
 \code{ggplot2} is required only when these functions are called.
 }

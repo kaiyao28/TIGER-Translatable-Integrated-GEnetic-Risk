@@ -74,6 +74,9 @@ prepare_rv_reference <- function(x, source = "RV") {
   if (any(!valid)) warning(sum(!valid), " invalid RV rows removed")
   output <- output[valid, , drop = FALSE]
   if (!nrow(output)) stop("No valid RV rows remain")
+  if (any(!nzchar(output$ID)) || anyDuplicated(output$ID)) {
+    stop("RV reference IDs must be non-empty and unique")
+  }
   output$Direction <- ifelse(output$OR >= 1, "Damaging", "Protective")
   rownames(output) <- NULL
   output
@@ -107,9 +110,15 @@ prepare_rv_carrier_matrix <- function(x, individual_ids = NULL,
   if (is.null(variant_ids)) variant_ids <- unique(variants)
   individual_ids <- as.character(individual_ids)
   variant_ids <- as.character(variant_ids)
-  if (anyDuplicated(individual_ids) || anyDuplicated(variant_ids) ||
+  if (!length(individual_ids) || !length(variant_ids) ||
+      anyNA(individual_ids) || anyNA(variant_ids) ||
+      any(!nzchar(individual_ids)) || any(!nzchar(variant_ids)) ||
+      anyDuplicated(individual_ids) || anyDuplicated(variant_ids) ||
       any(!ids %in% individual_ids) || any(!variants %in% variant_ids)) {
-    stop("individual_ids and variant_ids must be unique and contain all table values")
+    stop(
+      "individual_ids and variant_ids must be non-empty, unique, and contain ",
+      "all table values"
+    )
   }
   out <- matrix(
     FALSE, nrow = length(individual_ids), ncol = length(variant_ids),
@@ -131,14 +140,26 @@ apply_rv_carriers <- function(p_prs, carrier_matrix, odds_ratios,
   .check_rv_probability(p_prs, "p_prs")
   if (!is.matrix(carrier_matrix) || !is.logical(carrier_matrix) ||
       anyNA(carrier_matrix) || nrow(carrier_matrix) != length(p_prs) ||
-      is.null(colnames(carrier_matrix))) {
+      is.null(colnames(carrier_matrix)) ||
+      anyNA(colnames(carrier_matrix)) || any(!nzchar(colnames(carrier_matrix))) ||
+      anyDuplicated(colnames(carrier_matrix))) {
     stop("carrier_matrix must be a named-column logical matrix with one row per person")
+  }
+  probability_ids <- names(p_prs)
+  carrier_ids <- rownames(carrier_matrix)
+  if (!is.null(probability_ids) && !is.null(carrier_ids) &&
+      !identical(probability_ids, carrier_ids)) {
+    stop("named p_prs IDs must exactly match carrier_matrix row names and order")
   }
   if (!is.numeric(odds_ratios) || length(odds_ratios) != ncol(carrier_matrix) ||
       any(!is.finite(odds_ratios)) || any(odds_ratios <= 0)) {
     stop("odds_ratios must contain one positive finite value per variant")
   }
   if (!is.null(names(odds_ratios))) {
+    if (anyNA(names(odds_ratios)) || any(!nzchar(names(odds_ratios))) ||
+        anyDuplicated(names(odds_ratios))) {
+      stop("named odds_ratios must have non-empty unique names")
+    }
     if (!all(colnames(carrier_matrix) %in% names(odds_ratios))) {
       stop("named odds_ratios must include every carrier-matrix variant")
     }
