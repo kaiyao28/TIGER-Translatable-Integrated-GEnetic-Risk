@@ -20,7 +20,7 @@ use an unconverted raw or merely standardized PRS. See
 
 ```r
 K <- 0.01
-P <- 0.50
+SP <- 0.50
 r2_liability <- 0.10
 SP_RV <- 0.50
 ```
@@ -35,7 +35,7 @@ The default worked-example method is **PAIR (summary)**:
 p_prs <- pair_probability_summary(
   prs_liability,
   K = K,
-  prior = P,
+  SP = SP,
   r2_liability = r2_liability
 )
 ```
@@ -62,16 +62,24 @@ a correctly centred liability-scale PRS. Follow the detailed
 
 ### GenoPred
 
-`pain_probability()` applies the quantile conversion described by Pain et al.
-It requires target and population-reference PRSs, observed-scale R², `K`, `P`
+`genopred_probability()` applies the quantile conversion described by Pain et
+al. The legacy name `pain_probability()` is retained for backward
+compatibility.
+It requires target and population-reference PRSs, observed-scale R², `K`, `SP`
 and a justified quantile specification.
 
 ## Common high-impact variants
 
-`apply_high_impact_probability()` updates a PRS probability using the observed
-genotype's case/control likelihood ratio. `apoe_genotype_reference()` supports
-APOE allele frequencies under an explicit HWE assumption; observed genotype
-frequencies are preferred. See [`AD_APOE_GUIDE.md`](AD_APOE_GUIDE.md).
+`high_impact_prevalence_parameters()` derives genotype-specific population
+prevalence and sample-prevalence values from case/control genotype frequencies.
+`high_impact_method_probability()` then recalculates BPC, GenoPred, PAIR
+(summary), or PAIR (sample) using those values. This is the canonical TIGER
+high-impact-variant update.
+`apply_high_impact_probability()` remains available as a lower-level direct
+likelihood-ratio update when that alternative model is explicitly intended.
+`apoe_genotype_reference()` supports APOE allele frequencies under an explicit
+HWE assumption; observed genotype frequencies are preferred. See
+[`AD_APOE_GUIDE.md`](AD_APOE_GUIDE.md).
 
 ## Rare variants
 

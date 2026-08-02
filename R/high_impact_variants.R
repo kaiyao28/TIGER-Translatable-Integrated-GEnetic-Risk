@@ -87,3 +87,83 @@ apply_high_impact_probability <- function(p_prs, genotype, reference) {
   if (any(denominator <= 0)) stop("genotype has zero probability in both groups")
   p_prs * case_frequency / denominator
 }
+
+# Derive genotype-specific population prevalence and target-sample SP from
+# case/control genotype frequencies. These are the K_g and sample-prevalence
+# quantities used by TIGER when each PRS conversion is recalculated by genotype.
+high_impact_prevalence_parameters <- function(reference, K, SP = 0.5) {
+  .check_probability(K, "K")
+  .check_probability(SP, "SP")
+  reference <- prepare_high_impact_reference(reference)
+  population_denominator <- K * reference$Case_freq +
+    (1 - K) * reference$Control_freq
+  sample_denominator <- SP * reference$Case_freq +
+    (1 - SP) * reference$Control_freq
+  if (any(population_denominator <= 0) || any(sample_denominator <= 0)) {
+    stop("each genotype must occur in the population and target mixture")
+  }
+  reference$K_genotype <-
+    K * reference$Case_freq / population_denominator
+  reference$SP_genotype <-
+    SP * reference$Case_freq / sample_denominator
+  reference
+}
+
+# Recalculate a selected PRS-to-probability method using genotype-specific K_g
+# and sample prevalence. This is TIGER's canonical high-impact-variant update.
+high_impact_method_probability <- function(
+    prs_liability, genotype, reference, K, SP = 0.5,
+    method = c("PAIR (summary)", "PAIR (sample)", "BPC", "GenoPred"),
+    r2_liability = NULL, reference_prs_liability = NULL,
+    r2_observed = NULL, case_mean = NULL, case_sd = NULL,
+    control_mean = NULL, control_sd = NULL, n_quantiles = 100) {
+  if (!is.numeric(prs_liability) || !length(prs_liability) ||
+      any(!is.finite(prs_liability))) {
+    stop("prs_liability must contain finite numeric values")
+  }
+  method <- match.arg(method)
+  genotype <- as.character(genotype)
+  target_length <- max(length(prs_liability), length(genotype))
+  if (!length(genotype) ||
+      any(!c(length(prs_liability), length(genotype)) %in% c(1L, target_length))) {
+    stop("prs_liability and genotype must have equal lengths or be scalar")
+  }
+  prs_liability <- rep(prs_liability, length.out = target_length)
+  genotype <- rep(genotype, length.out = target_length)
+  parameters <- high_impact_prevalence_parameters(reference, K, SP)
+  index <- match(genotype, parameters$Genotype)
+  if (anyNA(index)) {
+    stop("Unknown genotype(s): ",
+         paste(unique(genotype[is.na(index)]), collapse = ", "))
+  }
+  output <- numeric(target_length)
+  for (g in unique(genotype)) {
+    selected <- genotype == g
+    row <- parameters[parameters$Genotype == g, , drop = FALSE]
+    Kg <- row$K_genotype
+    SP_g <- row$SP_genotype
+    r2_observed_g <- if (method == "GenoPred" && !is.null(r2_liability)) {
+      liability_to_observed_r2(r2_liability, Kg, SP_g)
+    } else {
+      r2_observed
+    }
+    output[selected] <- switch(
+      method,
+      "BPC" = bpc_probability(
+        prs_liability[selected], Kg, SP_g, r2_liability
+      ),
+      "GenoPred" = genopred_probability(
+        prs_liability[selected], reference_prs_liability,
+        r2_observed_g, Kg, SP = SP_g, n_quantiles = n_quantiles
+      ),
+      "PAIR (summary)" = pair_probability_summary(
+        prs_liability[selected], Kg, SP_g, r2_liability
+      ),
+      "PAIR (sample)" = pair_probability_sample(
+        prs_liability[selected], case_mean, case_sd,
+        control_mean, control_sd, Kg, SP_g
+      )
+    )
+  }
+  output
+}

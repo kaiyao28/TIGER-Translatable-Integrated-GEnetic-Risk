@@ -6,6 +6,7 @@
 \alias{observed_to_liability_r2}
 \alias{liability_to_observed_r2}
 \alias{bpc_probability}
+\alias{genopred_probability}
 \alias{pain_probability}
 \alias{pair_probability_summary}
 \alias{pair_probability_sample}
@@ -19,6 +20,8 @@
 \alias{prepare_high_impact_reference}
 \alias{apoe_genotype_reference}
 \alias{apply_high_impact_probability}
+\alias{high_impact_prevalence_parameters}
+\alias{high_impact_method_probability}
 \alias{harmonise_scz_reference}
 \alias{harmonise_ad_reference}
 \alias{read_tiger_reference}
@@ -36,4 +39,6 @@ Use \code{pair_probability_summary()} as the default worked-example method.
 Read the repository's docs/GETTING_STARTED.md, docs/USAGE.md and docs/METHODS.md before applying
 the functions to study data. In particular, exclude any separately modelled
 region from the PRS and use compatible liability-scale inputs.
+Use \code{genopred_probability()} for the GenoPred conversion. The legacy
+\code{pain_probability()} name remains available for backward compatibility.
 }

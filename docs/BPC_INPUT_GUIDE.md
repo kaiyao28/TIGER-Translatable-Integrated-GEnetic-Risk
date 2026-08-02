@@ -17,7 +17,7 @@ PRS to functions whose `prs_liability` argument requires the liability scale.
 
 1. `prs_liability`: one or more Bayesian PRS values on the liability scale;
 2. `K`: population disorder prevalence;
-3. `prior`: prior disorder probability in the target context;
+3. `SP`: sample prevalence in the target context;
 4. `r2_liability`: PRS variance explained on the liability scale.
 
 The same SNP set must be present in the GWAS/PRS model, target cohort and
@@ -102,11 +102,11 @@ mismatched SNPs can alter both individual PRS values and the reference variance.
 ## 4. Convert PRSs to the liability scale
 
 When the Bayesian method used `Neff`, BPC treats the PRS as being on the
-standardised observed scale with `P = 0.5`. Convert both target and reference
+standardised observed scale with `SP = 0.5`. Convert both target and reference
 PRSs using:
 
 ```r
-scale_factor <- bpc_liability_scale_factor(K = 0.01, P = 0.5)
+scale_factor <- bpc_liability_scale_factor(K = 0.01, SP = 0.5)
 target_prs_liability <- target_prs_observed * scale_factor
 reference_prs_liability <- reference_prs_observed * scale_factor
 ```
@@ -118,7 +118,7 @@ prepared <- prepare_bpc_inputs(
   target_prs_observed = target_prs_observed,
   reference_prs_observed = reference_prs_observed,
   K = 0.01,
-  P = 0.5,
+  SP = 0.5,
   center_on_reference = FALSE
 )
 ```
@@ -146,13 +146,13 @@ the same score construction as the target sample.
 probability <- bpc_probability(
   prs_liability = prepared$target_prs_liability,
   K = 0.01,
-  prior = 0.5,
+  SP = 0.5,
   r2_liability = prepared$r2_liability
 )
 ```
 
-For a randomly selected population member, the prior may equal `K`. In a
-help-seeking or otherwise selected target setting, the appropriate prior may be
+For a randomly selected population member, `SP` may equal `K`. In a
+help-seeking or otherwise selected target setting, the appropriate `SP` may be
 higher and should be justified independently of genotype.
 
 ## Quality-control checklist

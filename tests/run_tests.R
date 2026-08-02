@@ -8,12 +8,12 @@ if (requireNamespace("TIGER", quietly = TRUE)) {
 }
 
 K <- 0.01
-P <- 0.5
+SP <- 0.5
 r2l <- 0.1
 prs <- seq(-0.5, 0.5, length.out = 21)
 reference <- seq(-1, 1, length.out = 500) * sqrt(r2l)
-r2o <- liability_to_observed_r2(r2l, K, P)
-stopifnot(abs(observed_to_liability_r2(r2o, K, P) - r2l) < 1e-12)
+r2o <- liability_to_observed_r2(r2l, K, SP)
+stopifnot(abs(observed_to_liability_r2(r2o, K, SP) - r2l) < 1e-12)
 stopifnot(effective_sample_size(100, 100) == 200)
 prepared_sbayesr <- prepare_sbayesr_summary_statistics(
   beta = 0.1, standard_error = 0.02, n_effective = 1000
@@ -22,11 +22,11 @@ stopifnot(
   abs(prepared_sbayesr$beta_50_50 - 0.1 / (0.02 * sqrt(1000))) < 1e-12,
   abs(prepared_sbayesr$standard_error_50_50 - 1 / sqrt(1000)) < 1e-12
 )
-scale_factor <- bpc_liability_scale_factor(K, P)
+scale_factor <- bpc_liability_scale_factor(K, SP)
 prepared_bpc <- prepare_bpc_inputs(
   target_prs_observed = prs / scale_factor,
   reference_prs_observed = reference / scale_factor,
-  K = K, P = P
+  K = K, SP = SP
 )
 stopifnot(
   max(abs(prepared_bpc$target_prs_liability - prs)) < 1e-12,
@@ -34,18 +34,19 @@ stopifnot(
 )
 
 outputs <- list(
-  bpc_probability(prs, K, P, r2l),
-  pain_probability(prs, reference, r2o, K, P),
-  pair_probability_summary(prs, K, P, r2l)
+  bpc_probability(prs, K, SP, r2l),
+  genopred_probability(prs, reference, r2o, K, SP),
+  pair_probability_summary(prs, K, SP, r2l)
 )
+stopifnot(identical(genopred_probability, pain_probability))
 stopifnot(all(vapply(outputs, function(x) {
   length(x) == length(prs) && all(is.finite(x)) &&
     all(x >= 0) && all(x <= 1)
 }, logical(1))))
 stopifnot(all(vapply(outputs, function(x) all(diff(x) >= 0), logical(1))))
 
-pair_summary <- pair_probability_summary(prs, K, P, r2l)
-stopifnot(identical(pair_probability(prs, K, P, r2l), pair_summary))
+pair_summary <- pair_probability_summary(prs, K, SP, r2l)
+stopifnot(identical(pair_probability(prs, K, SP, r2l), pair_summary))
 threshold <- -stats::qnorm(K)
 density <- stats::dnorm(threshold)
 i_case <- density / K
@@ -56,7 +57,7 @@ sample_case_sd <- sqrt(r2l - i_case * (i_case - threshold) * r2l^2)
 sample_control_sd <- sqrt(r2l - i_control * (i_control - threshold) * r2l^2)
 pair_sample <- pair_probability_sample(
   prs, sample_case_mean, sample_case_sd,
-  sample_control_mean, sample_control_sd, K = K, prior = P
+  sample_control_mean, sample_control_sd, K = K, SP = SP
 )
 stopifnot(
   length(pair_sample) == length(prs),
@@ -126,6 +127,28 @@ stopifnot(
   apoe_updated[2] > apoe_updated[1],
   apoe_updated[3] > apoe_updated[2]
 )
+apoe_parameters <- high_impact_prevalence_parameters(
+  apoe_reference, K = 0.01, SP = 0.5
+)
+stopifnot(
+  all(apoe_parameters$K_genotype > 0 & apoe_parameters$K_genotype < 1),
+  all(apoe_parameters$SP_genotype > 0 &
+        apoe_parameters$SP_genotype < 1)
+)
+method_updated <- high_impact_method_probability(
+  c(-0.2, 0.1, 0.3), c("e3/e3", "e3/e4", "e4/e4"), apoe_reference,
+  K = 0.01, SP = 0.5, method = "PAIR (summary)", r2_liability = 0.1
+)
+manual_updated <- vapply(seq_along(method_updated), function(i) {
+  row <- apoe_parameters[
+    apoe_parameters$Genotype == c("e3/e3", "e3/e4", "e4/e4")[i],
+  ]
+  pair_probability_summary(
+    c(-0.2, 0.1, 0.3)[i], row$K_genotype,
+    row$SP_genotype, 0.1
+  )
+}, numeric(1))
+stopifnot(max(abs(method_updated - manual_updated)) < 1e-12)
 
 # A likelihood ratio of one leaves the input probability unchanged.
 neutral <- data.frame(
@@ -174,6 +197,12 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
     probability_method = "PAIR (summary)"
   )
   stopifnot(inherits(tiger_plot, "ggplot"))
+  tiger_plot_build <- ggplot2::ggplot_build(tiger_plot)
+  tiger_point_layer <- tiger_plot_build$data[[2]]
+  stopifnot(
+    all(unique(tiger_point_layer$shape) %in% c(21, 24)),
+    length(unique(tiger_point_layer$fill)) == 1L
+  )
   tiger_apoe_plot <- plot_tiger_before_after_apoe(
     prs = seq(-1, 1, length.out = 5),
     probability_before = plot_before,
@@ -185,29 +214,37 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
   apoe_curve_plot <- plot_tiger_apoe_curves(
     prs = seq(-4, 4, length.out = 41),
     probability_prs = pair_probability_summary(
-      seq(-4, 4, length.out = 41), K = 0.1, prior = 0.5,
+      seq(-4, 4, length.out = 41), K = 0.1, SP = 0.5,
       r2_liability = 0.1
     ),
-    apoe_reference = apoe_reference
+    apoe_reference = apoe_reference,
+    K = 0.01, SP = 0.5, r2_liability = 0.1
   )
   stopifnot(inherits(apoe_curve_plot, "ggplot"))
   carrier_point_plot <- plot_tiger_rv_carrier_points(
     prs_curve = seq(-4, 4, length.out = 41),
     probability_curve = pair_probability_summary(
-      seq(-4, 4, length.out = 41), K = 0.01, prior = 0.5,
+      seq(-4, 4, length.out = 41), K = 0.01, SP = 0.5,
       r2_liability = 0.1
     ),
     carrier_prs = c(-1, 1),
     carrier_probability_before = c(0.1, 0.7),
     carrier_probability_after = c(0.3, 0.9),
     rv_count = c(1, 2),
-    rv_effect = c("Damaging", "Damaging")
+    rv_point_size = 2.5, rv_point_alpha = 0.4,
+    rv_shapes = c("1 RV" = 21, "2+ RVs" = 24)
   )
   stopifnot(inherits(carrier_point_plot, "ggplot"))
+  carrier_point_build <- ggplot2::ggplot_build(carrier_point_plot)
+  carrier_point_layer <- carrier_point_build$data[[2]]
+  stopifnot(
+    identical(sort(unique(carrier_point_layer$shape)), c(21, 24)),
+    length(unique(carrier_point_layer$fill)) == 1L
+  )
   combined_plot <- plot_tiger_apoe_rv_carrier_points(
     prs_curve = seq(-4, 4, length.out = 41),
     probability_prs = pair_probability_summary(
-      seq(-4, 4, length.out = 41), K = 0.01, prior = 0.5,
+      seq(-4, 4, length.out = 41), K = 0.01, SP = 0.5,
       r2_liability = 0.1
     ),
     apoe_reference = apoe_reference,
@@ -216,8 +253,18 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
     carrier_probability_before_rv = c(0.2, 0.8),
     carrier_probability_after_rv = c(0.4, 0.9),
     rv_count = c(1, 2),
-    rv_effect = c("Damaging", "Mixed")
+    carrier_group = c("Group A", "Group B"),
+    K = 0.01, SP = 0.5, r2_liability = 0.1
   )
   stopifnot(inherits(combined_plot, "ggplot"))
+  combined_plot_build <- ggplot2::ggplot_build(combined_plot)
+  combined_point_layer <- combined_plot_build$data[[2]]
+  stopifnot(
+    identical(sort(unique(combined_point_layer$shape)), c(21, 24)),
+    length(unique(combined_point_layer$fill)) == 2L,
+    all(combined_point_layer$alpha == 0.30),
+    identical(combined_plot$labels$fill, "Carrier group"),
+    identical(combined_plot$labels$shape, "Number of RVs")
+  )
 }
 cat("All tests passed.\n")

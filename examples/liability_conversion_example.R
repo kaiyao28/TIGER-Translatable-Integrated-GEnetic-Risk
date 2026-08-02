@@ -16,7 +16,7 @@ reference <- read.csv(
 )
 
 K <- 0.01
-P <- 0.50
+SP <- 0.50
 
 # These example scores are treated as already centred with the same
 # population-reference allele frequencies. In a real analysis, target and
@@ -26,7 +26,7 @@ converted <- prepare_bpc_inputs(
   target_prs_observed = target$PRS_observed,
   reference_prs_observed = reference$PRS_observed,
   K = K,
-  P = P,
+  SP = SP,
   center_on_reference = FALSE
 )
 
@@ -45,7 +45,7 @@ print(target)
 target$Probability_PAIR_summary <- pair_probability_summary(
   prs_liability = target$PRS_liability,
   K = K,
-  prior = P,
+  SP = SP,
   r2_liability = r2_liability
 )
 

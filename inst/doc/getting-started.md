@@ -14,14 +14,14 @@ matching reference PRS in the same way.
 library(TIGER)
 
 K <- 0.01
-P <- 0.50
+SP <- 0.50
 r2_liability <- 0.10
 prs_liability <- seq(-1, 1, by = 0.25)
 
 p_prs <- pair_probability_summary(
   prs_liability,
   K = K,
-  prior = P,
+  SP = SP,
   r2_liability = r2_liability
 )
 ```

@@ -1,3 +1,5 @@
 ^CITATION\.cff$
 ^examples/figures$
-
+^\.git$
+^\.gitignore$
+^\.\.Rcheck$

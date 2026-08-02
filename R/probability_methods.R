@@ -29,14 +29,14 @@ effective_sample_size <- function(n_cases, n_controls) {
 }
 
 # BPC liability multiplier for a PRS on the standardised observed scale with
-# ascertainment P. BPC commonly uses P = 0.5 because Neff is supplied to the
+# ascertainment SP. BPC commonly uses SP = 0.5 because Neff is supplied to the
 # Bayesian PRS method.
-bpc_liability_scale_factor <- function(K, P = 0.5) {
+bpc_liability_scale_factor <- function(K, SP = 0.5) {
   .check_probability(K, "K")
-  .check_probability(P, "P")
+  .check_probability(SP, "SP")
   threshold <- -stats::qnorm(K)
   density <- stats::dnorm(threshold)
-  sqrt(K^2 * (1 - K)^2 / (density^2 * P * (1 - P)))
+  sqrt(K^2 * (1 - K)^2 / (density^2 * SP * (1 - SP)))
 }
 
 # Convert observed-scale target and reference PRSs to liability scale and
@@ -44,7 +44,7 @@ bpc_liability_scale_factor <- function(K, P = 0.5) {
 # been constructed with the same SNPs, posterior effects and reference-allele
 # centring. Set center_on_reference only if scores were not already centred.
 prepare_bpc_inputs <- function(target_prs_observed, reference_prs_observed,
-                               K, P = 0.5,
+                               K, SP = 0.5,
                                center_on_reference = FALSE) {
   if (!is.numeric(target_prs_observed) ||
       any(!is.finite(target_prs_observed)) ||
@@ -59,7 +59,7 @@ prepare_bpc_inputs <- function(target_prs_observed, reference_prs_observed,
     target_prs_observed <- target_prs_observed - reference_mean
     reference_prs_observed <- reference_prs_observed - reference_mean
   }
-  multiplier <- bpc_liability_scale_factor(K, P)
+  multiplier <- bpc_liability_scale_factor(K, SP)
   target_liability <- target_prs_observed * multiplier
   reference_liability <- reference_prs_observed * multiplier
   list(
@@ -90,24 +90,24 @@ prepare_sbayesr_summary_statistics <- function(beta, standard_error,
 
 # Convert observed-scale variance explained to the liability scale using the
 # Lee et al. transformation employed by the BPC workflow.
-observed_to_liability_r2 <- function(r2_observed, K, P = 0.5) {
+observed_to_liability_r2 <- function(r2_observed, K, SP = 0.5) {
   .check_r2(r2_observed, "r2_observed")
   .check_probability(K, "K")
-  .check_probability(P, "P")
+  .check_probability(SP, "SP")
   threshold <- -stats::qnorm(K)
   density <- stats::dnorm(threshold)
   r2_observed * K^2 * (1 - K)^2 /
-    (density^2 * P * (1 - P))
+    (density^2 * SP * (1 - SP))
 }
 
 # Exact algebraic inverse of observed_to_liability_r2().
-liability_to_observed_r2 <- function(r2_liability, K, P = 0.5) {
+liability_to_observed_r2 <- function(r2_liability, K, SP = 0.5) {
   .check_r2(r2_liability, "r2_liability")
   .check_probability(K, "K")
-  .check_probability(P, "P")
+  .check_probability(SP, "SP")
   threshold <- -stats::qnorm(K)
   density <- stats::dnorm(threshold)
-  r2_liability * density^2 * P * (1 - P) /
+  r2_liability * density^2 * SP * (1 - SP) /
     (K^2 * (1 - K)^2)
 }
 
@@ -116,15 +116,15 @@ liability_to_observed_r2 <- function(r2_liability, K, P = 0.5) {
 # prs_liability: PRS values on the liability scale, centred using an
 # ancestry-matched population reference sample.
 # K: population lifetime prevalence.
-# prior: prior probability appropriate to the target/test context.
+# SP: sample prevalence in the target/test context.
 # r2_liability: liability-scale PRS variance explained.
-bpc_probability <- function(prs_liability, K, prior, r2_liability) {
+bpc_probability <- function(prs_liability, K, SP, r2_liability) {
   if (!is.numeric(prs_liability) || !length(prs_liability) ||
       any(!is.finite(prs_liability))) stop("prs_liability must be finite numeric")
   .check_probability(K, "K")
-  .check_probability(prior, "prior")
+  .check_probability(SP, "SP")
   .check_r2(r2_liability, "r2_liability")
-  if (r2_liability <= 0) return(rep(prior, length(prs_liability)))
+  if (r2_liability <= 0) return(rep(SP, length(prs_liability)))
 
   threshold <- -stats::qnorm(K)
   density <- stats::dnorm(threshold)
@@ -146,14 +146,14 @@ bpc_probability <- function(prs_liability, K, prior, r2_liability) {
   control_density <- stats::dnorm(
     prs_liability, mean_control, sqrt(variance_control)
   )
-  prior * case_density /
-    (prior * case_density + (1 - prior) * control_density)
+  SP * case_density /
+    (SP * case_density + (1 - SP) * control_density)
 }
 
 # Pain et al. quantile conversion with an optional population-prevalence
-# adaptation. Set corrected = FALSE to return the original Pt-based version.
+# adaptation. Set corrected = FALSE to return the original SP-based version.
 pain_probability <- function(prs_liability, reference_prs_liability,
-                             r2_observed, K, Pt = 0.5,
+                             r2_observed, K, SP = 0.5,
                              n_quantiles = 100, corrected = TRUE) {
   if (!is.numeric(prs_liability) || !length(prs_liability) ||
       any(!is.finite(prs_liability))) stop("prs_liability must be finite numeric")
@@ -163,10 +163,10 @@ pain_probability <- function(prs_liability, reference_prs_liability,
   }
   .check_r2(r2_observed, "r2_observed")
   .check_probability(K, "K")
-  .check_probability(Pt, "Pt")
+  .check_probability(SP, "SP")
   n_quantiles <- as.integer(n_quantiles)
   if (n_quantiles < 2L) stop("n_quantiles must be at least 2")
-  if (r2_observed <= 1e-4) return(rep(Pt, length(prs_liability)))
+  if (r2_observed <= 1e-4) return(rep(SP, length(prs_liability)))
 
   ref_mean <- mean(reference_prs_liability, na.rm = TRUE)
   ref_sd <- stats::sd(reference_prs_liability, na.rm = TRUE)
@@ -182,13 +182,13 @@ pain_probability <- function(prs_liability, reference_prs_liability,
   )
   mixture_quantile <- function(pq) {
     stats::uniroot(
-      function(x) Pt * stats::pnorm(x - d) +
-        (1 - Pt) * stats::pnorm(x) - pq,
+      function(x) SP * stats::pnorm(x - d) +
+        (1 - SP) * stats::pnorm(x) - pq,
       interval = c(-2.5, 2.5), extendInt = "yes", tol = 6e-12
     )$root
   }
   raw_breaks <- vapply(quantile_probabilities, mixture_quantile, numeric(1))
-  moment_prevalence <- if (isTRUE(corrected)) K else Pt
+  moment_prevalence <- if (isTRUE(corrected)) K else SP
   variance_prs <- moment_prevalence *
     (1 + d^2 - (d * moment_prevalence)^2) +
     (1 - moment_prevalence) * (1 - (d * moment_prevalence)^2)
@@ -197,18 +197,22 @@ pain_probability <- function(prs_liability, reference_prs_liability,
   standardised_bounds <- (raw_bounds - mean_prs) / sqrt(variance_prs)
   case_mass <- stats::pnorm(raw_bounds[-1], mean = d) -
     stats::pnorm(raw_bounds[-length(raw_bounds)], mean = d)
-  p_case <- case_mass * Pt / bin_mass
+  p_case <- case_mass * SP / bin_mass
   bin <- findInterval(z_prs, standardised_bounds[-1]) + 1L
   bin <- pmin(pmax(bin, 1L), n_quantiles)
   pmin(pmax(p_case[bin], 0), 1)
 }
 
+# Public TIGER name for the Pain et al. quantile conversion. The original
+# pain_probability() entry point is retained for backward compatibility.
+genopred_probability <- pain_probability
+
 # PAIR conversion using supplied case/control PRS moments. population_prevalence
-# reconstructs population PRS moments; prior calibrates the output probability
+# reconstructs population PRS moments; SP calibrates the output probability
 # to the intended target context.
 .pair_probability_from_moments <- function(
     prs_liability, case_mean, case_sd, control_mean, control_sd,
-    population_prevalence, prior) {
+    population_prevalence, SP) {
   if (!is.numeric(prs_liability) || !length(prs_liability) ||
       any(!is.finite(prs_liability))) stop("prs_liability must be finite numeric")
   moments <- c(case_mean, case_sd, control_mean, control_sd)
@@ -217,7 +221,7 @@ pain_probability <- function(prs_liability, reference_prs_liability,
     stop("case/control means must be finite scalars and SDs must be positive")
   }
   .check_probability(population_prevalence, "population_prevalence")
-  .check_probability(prior, "prior")
+  .check_probability(SP, "SP")
 
   mixture_mean <- population_prevalence * case_mean +
     (1 - population_prevalence) * control_mean
@@ -229,26 +233,26 @@ pain_probability <- function(prs_liability, reference_prs_liability,
   r0 <- (case_sd^2 + mean_difference_sq) / control_sd^2
   r1 <- (control_sd^2 + mean_difference_sq) / case_sd^2
   beta <- (case_mean - control_mean) *
-    (prior * (1 - prior) * ((r0 + r1) / 2 - 1) +
-       prior * case_sd^2 / control_sd^2 +
-       (1 - prior) * control_sd^2 / case_sd^2) /
+    (SP * (1 - SP) * ((r0 + r1) / 2 - 1) +
+       SP * case_sd^2 / control_sd^2 +
+       (1 - SP) * control_sd^2 / case_sd^2) /
     mixture_variance
-  alpha <- log(prior * control_sd / ((1 - prior) * case_sd)) +
-    ((r0 - 1) * prior + (1 - r1) * (1 - prior)) / 2 -
+  alpha <- log(SP * control_sd / ((1 - SP) * case_sd)) +
+    ((r0 - 1) * SP + (1 - r1) * (1 - SP)) / 2 -
     mixture_mean * beta
   stats::plogis(alpha + beta * prs_liability)
 }
 
 # PAIR (summary): phenotype-independent conversion using theoretical
 # case/control PRS moments implied by population K and liability-scale PRS R2.
-pair_probability_summary <- function(prs_liability, K, prior = 0.5,
+pair_probability_summary <- function(prs_liability, K, SP = 0.5,
                                      r2_liability) {
   if (!is.numeric(prs_liability) || !length(prs_liability) ||
       any(!is.finite(prs_liability))) stop("prs_liability must be finite numeric")
   .check_probability(K, "K")
-  .check_probability(prior, "prior")
+  .check_probability(SP, "SP")
   .check_r2(r2_liability, "r2_liability")
-  if (r2_liability <= 0) return(rep(prior, length(prs_liability)))
+  if (r2_liability <= 0) return(rep(SP, length(prs_liability)))
 
   threshold <- -stats::qnorm(K)
   density <- stats::dnorm(threshold)
@@ -263,7 +267,7 @@ pair_probability_summary <- function(prs_liability, K, prior = 0.5,
 
   .pair_probability_from_moments(
     prs_liability, m1, s1, m0, s0,
-    population_prevalence = K, prior = prior
+    population_prevalence = K, SP = SP
   )
 }
 
@@ -272,10 +276,10 @@ pair_probability_summary <- function(prs_liability, K, prior = 0.5,
 # separate representative calibration dataset, not in the people being scored.
 pair_probability_sample <- function(
     prs_liability, case_mean, case_sd, control_mean, control_sd,
-    K, prior = 0.5) {
+    K, SP = 0.5) {
   .pair_probability_from_moments(
     prs_liability, case_mean, case_sd, control_mean, control_sd,
-    population_prevalence = K, prior = prior
+    population_prevalence = K, SP = SP
   )
 }
 

@@ -1,3 +1,5 @@
+s
+
 # TIGER: Translatable Integrated Genetic Risk framework
 
 TIGER is a simulation-free R framework for estimating absolute binary-disorder
@@ -20,7 +22,7 @@ APOE and RV are separate optional components. APOE is not treated as an RV.
 2. Supply separate individual records for PRS, APOE status and RV carrier
    status.
 3. Supply justified case/control evidence for APOE and RV effects.
-4. Choose and justify population prevalence `K`, target prior `P`, and the RV
+4. Choose and justify population prevalence `K`, sample prevalence `SP`, and the RV
    calculation level (`SP_RV`; default 0.50 for a balanced sample).
 5. Calculate PRS only, PRS + RV, PRS + APOE, or the combined probability.
 
@@ -28,7 +30,7 @@ The worked-example defaults are:
 
 ```r
 K <- 0.01
-P <- 0.50
+SP <- 0.50
 r2_liability <- 0.10
 SP_RV <- 0.50
 ```
@@ -75,36 +77,40 @@ carrier matrix and references have been loaded as shown in [`USAGE.md`](docs/USA
 
 ```r
 p_prs <- pair_probability_summary(
-  individuals$PRS_liability, K, P, r2_liability
+  individuals$PRS_liability, K, SP, r2_liability
 )
 rv_result <- apply_rv_carriers(
   p_prs, carrier_matrix, rv_effects, prevalence = SP_RV
 )
 
 plot_tiger_rv_carrier_points(
-  prs_sequence, p_sequence,
-  individuals$PRS_liability[carrier_index],
-  p_prs[carrier_index],
-  rv_result$probability_after[carrier_index],
-  rv_result$RV_count[carrier_index],
-  carrier_effect[carrier_index]
+  prs_curve = prs_sequence,
+  probability_curve = p_sequence,
+  carrier_prs = individuals$PRS_liability[carrier_index],
+  carrier_probability_before = p_prs[carrier_index],
+  carrier_probability_after = rv_result$probability_after[carrier_index],
+  rv_count = rv_result$RV_count[carrier_index]
 )
 ```
 
-The curve is PRS only. Points are shown only for RV carriers; triangle means one
-RV and square means two or more RVs.
+The curve is PRS only. Points are shown only for RV carriers. A circle denotes
+one RV and a triangle denotes two or more RVs. Carrier points use one neutral
+fill by default. Optional colours represent user-defined groups and never
+damaging or protective RV direction.
 
 ![PRS curve with adjusted points only for RV carriers](examples/figures/rv_carrier_points_v4.png)
 
 ### 2. PRS + APOE / common high-impact variant
 
 ```r
-p_prs_apoe <- apply_high_impact_probability(
-  p_prs, individuals$APOE, apoe_reference
+p_prs_apoe <- high_impact_method_probability(
+  individuals$PRS_liability, individuals$APOE, apoe_reference,
+  K = K, SP = SP, method = "PAIR (summary)", r2_liability = r2_liability
 )
 
 plot_tiger_apoe_curves(
-  prs_sequence, p_sequence, apoe_reference
+  prs_sequence, p_sequence, apoe_reference,
+  K = K, SP = SP, r2_liability = r2_liability
 )
 ```
 
@@ -121,37 +127,42 @@ combined_result <- apply_rv_carriers(
 )
 
 plot_tiger_apoe_rv_carrier_points(
-  prs_sequence, p_sequence, apoe_reference,
-  individuals$PRS_liability[carrier_index],
-  individuals$APOE[carrier_index],
-  p_prs_apoe[carrier_index],
-  combined_result$probability_after[carrier_index],
-  rv_result$RV_count[carrier_index],
-  carrier_effect[carrier_index]
+  prs_curve = prs_sequence,
+  probability_prs = p_sequence,
+  apoe_reference = apoe_reference,
+  carrier_prs = individuals$PRS_liability[carrier_index],
+  carrier_apoe = individuals$APOE[carrier_index],
+  carrier_probability_before_rv = p_prs_apoe[carrier_index],
+  carrier_probability_after_rv =
+    combined_result$probability_after[carrier_index],
+  rv_count = rv_result$RV_count[carrier_index],
+  K = K, SP = SP, r2_liability = r2_liability
 )
 ```
 
 The lines show PRS + APOE probabilities. Points are shown only for RV carriers
-at their final PRS + APOE + RV probability.
+at their final PRS + APOE + RV probability. Shape distinguishes one from
+multiple RVs. Fill is neutral unless an external carrier grouping is supplied.
 
 ![APOE curves with adjusted points only for RV carriers](examples/figures/apoe_rv_carrier_points_v1.png)
 
-The complete runnable code—including creation of `prs_sequence`, carrier subsets
-and effect labels—is in [`USAGE.md`](docs/USAGE.md) and
+The complete runnable code—including creation of `prs_sequence` and carrier
+subsets—is in [`USAGE.md`](docs/USAGE.md) and
 `examples/example_data_and_plots.R`.
 
 ## Documentation
 
-| Guide | Contents |
-|---|---|
-| [`GETTING_STARTED.md`](docs/GETTING_STARTED.md) | Installation, first run, glossary and common errors |
-| [`USAGE.md`](docs/USAGE.md) | Complete application code and plotting examples |
-| [`METHODS.md`](docs/METHODS.md) | PAIR summary/sample, BPC, GenoPred, APOE and RV methods |
-| [`DATA.md`](docs/DATA.md) | PRS, APOE, RV-reference and individual-status schemas |
-| [`REFERENCE_DATA.md`](docs/REFERENCE_DATA.md) | Separate SCZ/AD references and custom-reference creation |
-| [`BPC_INPUT_GUIDE.md`](docs/BPC_INPUT_GUIDE.md) | Liability-scale PRS preparation and quality control |
-| [`AD_APOE_GUIDE.md`](docs/AD_APOE_GUIDE.md) | APOE-region exclusion and AD/APOE application |
-| [`REFERENCES.md`](docs/REFERENCES.md) | Method publications and adaptations |
+| Guide                                            | Contents                                                 |
+| ------------------------------------------------ | -------------------------------------------------------- |
+| [`GETTING_STARTED.md`](docs/GETTING_STARTED.md) | Installation, first run, glossary and common errors      |
+| [`USAGE.md`](docs/USAGE.md)                     | Complete application code and plotting examples          |
+| [`METHODS.md`](docs/METHODS.md)                 | PAIR summary/sample, BPC, GenoPred, APOE and RV methods  |
+| [`PLOTTING.md`](docs/PLOTTING.md)               | Point styling, group colours, legends and ggplot editing |
+| [`DATA.md`](docs/DATA.md)                       | PRS, APOE, RV-reference and individual-status schemas    |
+| [`REFERENCE_DATA.md`](docs/REFERENCE_DATA.md)   | Separate SCZ/AD references and custom-reference creation |
+| [`BPC_INPUT_GUIDE.md`](docs/BPC_INPUT_GUIDE.md) | Liability-scale PRS preparation and quality control      |
+| [`AD_APOE_GUIDE.md`](docs/AD_APOE_GUIDE.md)     | APOE-region exclusion and AD/APOE application            |
+| [`REFERENCES.md`](docs/REFERENCES.md)           | Method publications and adaptations                      |
 
 ## Repository structure
 
@@ -167,7 +178,7 @@ tests/             dependency-light checks
 
 TIGER does not run GWAS, calculate PRSs from genotype files, select scientific
 inputs, establish clinical utility or replace external validation. Users must
-justify ancestry, prevalence, prior, score construction, effect evidence,
+justify ancestry, prevalence, SP, score construction, effect evidence,
 overlap and independence assumptions. See [`USAGE.md`](docs/USAGE.md) and the focused guides
 before application.
 

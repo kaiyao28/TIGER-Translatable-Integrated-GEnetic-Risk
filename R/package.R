@@ -11,7 +11,7 @@
 NULL
 
 utils::globalVariables(c(
-  "APOE", "Condition", "Genotype", "Probability", "Probability_after",
+  "APOE", "Carrier_group", "Condition", "Genotype", "Probability", "Probability_after",
   "Probability_after_RV", "Probability_before", "PRS", "RV_count_group",
-  "RV_effect", "RV_group"
+  "RV_group"
 ))

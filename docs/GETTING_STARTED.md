@@ -62,7 +62,7 @@ Expected result: the scripts print probabilities, create three figures under
 | PRS | Polygenic risk score |
 | RV | Rare variant; separate from APOE |
 | `K` | Population disorder prevalence |
-| `P` | Pre-genetic prior/case proportion for the target context |
+| `SP` | Sample prevalence, or case proportion, in the target context |
 | `SP_RV` | Background level for the RV update; default 0.50 for the balanced sample calculation |
 | `r2_liability` | Variance explained by the PRS on the liability scale |
 | PAIR (summary) | Default example conversion using theoretical moments from `K` and liability-scale R² |
@@ -79,7 +79,7 @@ Work through this order:
 4. If using RVs, provide a separate carrier-status file and a harmonised effect
    reference.
 5. Match records by ID, never by row position.
-6. Replace and justify `K`, `P`, `SP_RV` and liability-scale R².
+6. Replace and justify `K`, `SP`, `SP_RV` and liability-scale R².
 7. Re-run validation and inspect the four probability conditions.
 
 Use [`USAGE.md`](USAGE.md) for the complete code, [`DATA.md`](DATA.md) for file
@@ -109,6 +109,6 @@ Standardise labels before calculation; do not silently drop unmatched records.
 
 ### Implausible probabilities
 
-Stop and recheck PRS scaling, `K`, `P`, `SP_RV`, R², ancestry, frequencies,
+Stop and recheck PRS scaling, `K`, `SP`, `SP_RV`, R², ancestry, frequencies,
 effect direction, overlap and independence assumptions. Do not interpret the
 result clinically until it has been externally validated.

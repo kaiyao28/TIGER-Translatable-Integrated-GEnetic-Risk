@@ -43,19 +43,22 @@ source("R/rare_variant_probability.R")
 
 # Supply justified values from the intended AD population and evidence source.
 K <- 0.01
-P <- 0.50
+SP <- 0.50
 r2l <- 0.10
 SP_RV <- 0.50
 prs_liability <- c(-0.20, 0.10, 0.35)
 apoe <- c("e3/e3", "e3/e4", "e4/e4")
 
-p_prs <- pair_probability_summary(prs_liability, K, P, r2l)
+p_prs <- pair_probability_summary(prs_liability, K, SP, r2l)
 
 apoe_reference <- apoe_genotype_reference(
   case_allele_frequencies = c(e2 = 0.04, e3 = 0.66, e4 = 0.30),
   control_allele_frequencies = c(e2 = 0.08, e3 = 0.79, e4 = 0.13)
 )
-p_prs_apoe <- apply_high_impact_probability(p_prs, apoe, apoe_reference)
+p_prs_apoe <- high_impact_method_probability(
+  prs_liability, apoe, apoe_reference,
+  K = K, SP = SP, method = "PAIR (summary)", r2_liability = r2l
+)
 
 # If independently supported RVs are present, add them last.
 p_rv <- intrinsic_rv_probability(odds_ratio = 4, prevalence = SP_RV)
@@ -71,15 +74,15 @@ evidence and intended probability are explicitly population-level.
 
 ## Interpretation and checks
 
-The APOE update multiplies the prior odds represented by the PRS probability by
-the genotype’s case/control likelihood ratio. It assumes that APOE information
+The method-specific APOE update derives genotype-specific population prevalence
+and sample prevalence values and recalculates the selected PRS conversion. It assumes that APOE information
 has been removed from the PRS. Adding an RV afterward additionally assumes that
 the RV effect is independent of the PRS and APOE component.
 
 Before use, check:
 
 - whether `K` is appropriate for the population, age horizon and outcome;
-- whether `P` represents the intended target context;
+- whether `SP` represents the intended target context;
 - whether APOE genotype or allele frequencies match the target population;
 - whether HWE is reasonable if allele frequencies are used;
 - whether the PRS and APOE/RV evidence overlap; and

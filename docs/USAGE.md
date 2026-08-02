@@ -17,13 +17,13 @@ target <- read.csv(tiger_example_file("example_target_prs_observed.csv"))
 reference <- read.csv(tiger_example_file("example_reference_prs_observed.csv"))
 
 K <- 0.01
-P <- 0.50
+SP <- 0.50
 
 converted <- prepare_bpc_inputs(
   target_prs_observed = target$PRS_observed,
   reference_prs_observed = reference$PRS_observed,
   K = K,
-  P = P,
+  SP = SP,
   center_on_reference = FALSE
 )
 
@@ -75,7 +75,7 @@ PAIR (summary) is the worked-example default:
 
 ```r
 K <- 0.01
-P <- 0.50
+SP <- 0.50
 r2l <- 0.10
 SP_RV <- 0.50
 
@@ -83,15 +83,17 @@ SP_RV <- 0.50
 p_prs <- pair_probability_summary(
   individuals$PRS_liability,
   K = K,
-  prior = P,
+  SP = SP,
   r2_liability = r2l
 )
 
 # PRS + APOE
-p_prs_apoe <- apply_high_impact_probability(
-  p_prs,
+p_prs_apoe <- high_impact_method_probability(
+  individuals$PRS_liability,
   individuals$APOE,
-  apoe_reference
+  apoe_reference,
+  K = K, SP = SP, method = "PAIR (summary)",
+  r2_liability = r2l
 )
 
 # Prepare the separate RV carrier layer
@@ -163,33 +165,33 @@ identifiers without the required governance and disclosure controls.
 ## 6. Plot RV carriers
 
 The line is PRS only. Points are shown only for RV carriers. Shape distinguishes
-one RV from two or more; fill distinguishes damaging, protective and mixed
-carriage.
+one RV from two or more. All points use one neutral fill unless an external
+`carrier_group` is supplied. Colour is not used to encode damaging or protective
+direction because that direction is already visible from the probability shift.
 
 ![PRS curve with adjusted points only for RV carriers](../examples/figures/rv_carrier_points_v4.png)
 
 ```r
 prs_sequence <- seq(-4, 4, by = 0.05)
 p_sequence <- pair_probability_summary(
-  prs_sequence, K = K, prior = P, r2_liability = r2l
+  prs_sequence, K = K, SP = SP, r2_liability = r2l
 )
 carrier_index <- rv_result$RV_count > 0
-carrier_effect <- ifelse(
-  rv_result$Damaging_RV_count > 0 & rv_result$Protective_RV_count > 0,
-  "Mixed",
-  ifelse(rv_result$Damaging_RV_count > 0, "Damaging", "Protective")
-)
-
 plot_tiger_rv_carrier_points(
   prs_curve = prs_sequence,
   probability_curve = p_sequence,
   carrier_prs = individuals$PRS_liability[carrier_index],
   carrier_probability_before = p_prs[carrier_index],
   carrier_probability_after = rv_result$probability_after[carrier_index],
-  rv_count = rv_result$RV_count[carrier_index],
-  rv_effect = carrier_effect[carrier_index]
+  rv_count = rv_result$RV_count[carrier_index]
 )
 ```
+
+To compare externally defined groups, supply one label per carrier through
+`carrier_group`. Optional named `group_colours` can set their colours.
+Points are drawn translucently, whereas the group legend displays the same
+colours at full opacity. This keeps dense carrier overlays mild while retaining
+an unambiguous group key.
 
 ## 7. Plot APOE and combined APOE + RV
 
@@ -201,7 +203,8 @@ APOE-only genotype curves:
 plot_tiger_apoe_curves(
   prs_sequence,
   p_sequence,
-  apoe_reference
+  apoe_reference,
+  K = K, SP = SP, r2_liability = r2l
 )
 ```
 
@@ -220,7 +223,7 @@ plot_tiger_apoe_rv_carrier_points(
   carrier_probability_after_rv =
     combined_result$probability_after[carrier_index],
   rv_count = rv_result$RV_count[carrier_index],
-  rv_effect = carrier_effect[carrier_index]
+  K = K, SP = SP, r2_liability = r2l
 )
 ```
 

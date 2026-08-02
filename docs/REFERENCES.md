@@ -29,7 +29,7 @@ https://doi.org/10.1186/s13195-021-00884-7
 ## Adaptations in this repository
 
 - `pain_probability(corrected = TRUE)` exposes a population-prevalence moment
-  adaptation. `corrected = FALSE` gives the original target-prior version.
+  adaptation. `corrected = FALSE` gives the original sample-prevalence version.
 - `pair_probability_summary()` supplies theoretical liability-scale
   case/control moments to the population-logistic framework and is labelled
   **PAIR (summary)**.

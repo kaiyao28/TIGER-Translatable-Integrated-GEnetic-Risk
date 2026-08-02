@@ -30,19 +30,21 @@ individuals$APOE <- apoe_status$APOE[apoe_match]
 
 # Illustrative modelling values only; users must replace and justify these.
 K <- 0.01
-P <- 0.50
+SP <- 0.50
 r2_liability <- 0.10
 SP_RV <- 0.50
 
 # 1. PRS probability. PAIR (summary) is the worked-example default.
 individuals$Probability_PRS <- pair_probability_summary(
-  individuals$PRS_liability, K = K, prior = P,
+  individuals$PRS_liability, K = K, SP = SP,
   r2_liability = r2_liability
 )
 
 # 2. APOE update. The example PRS is assumed to have excluded the APOE region.
-individuals$Probability_PRS_APOE <- apply_high_impact_probability(
-  individuals$Probability_PRS, individuals$APOE, apoe_reference
+individuals$Probability_PRS_APOE <- high_impact_method_probability(
+  individuals$PRS_liability, individuals$APOE, apoe_reference,
+  K = K, SP = SP, method = "PAIR (summary)",
+  r2_liability = r2_liability
 )
 
 # 3. RV update from a separate presence-only carrier table. Because the full ID
@@ -86,17 +88,12 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
   # curves; it is not a simulated cohort.
   prs_sequence <- seq(-4, 4, by = 0.05)
   plot_K <- 0.01
-  plot_P <- 0.50
+  plot_SP <- 0.50
   plot_r2l <- 0.10
   plot_p_prs <- pair_probability_summary(
-    prs_sequence, K = plot_K, prior = plot_P, r2_liability = plot_r2l
+    prs_sequence, K = plot_K, SP = plot_SP, r2_liability = plot_r2l
   )
   carrier_index <- rv_update$RV_count > 0
-  carrier_effect <- ifelse(
-    rv_update$Damaging_RV_count > 0 & rv_update$Protective_RV_count > 0,
-    "Mixed",
-    ifelse(rv_update$Damaging_RV_count > 0, "Damaging", "Protective")
-  )
   rv_plot <- plot_tiger_rv_carrier_points(
     prs_curve = prs_sequence,
     probability_curve = plot_p_prs,
@@ -104,7 +101,6 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
     carrier_probability_before = individuals$Probability_PRS[carrier_index],
     carrier_probability_after = individuals$Probability_PRS_RV[carrier_index],
     rv_count = individuals$RV_count[carrier_index],
-    rv_effect = carrier_effect[carrier_index],
     probability_method = "PAIR (summary)"
   )
   ggplot2::ggsave(
@@ -116,7 +112,8 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
     prs_sequence,
     plot_p_prs,
     apoe_reference,
-    probability_method = "PAIR (summary)"
+    probability_method = "PAIR (summary)",
+    K = K, SP = SP, r2_liability = r2_liability
   )
   ggplot2::ggsave(
     file.path(figure_dir, "apoe_genotype_curves_v2.png"), apoe_plot,
@@ -134,8 +131,8 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
     carrier_probability_after_rv =
       individuals$Probability_PRS_APOE_RV[carrier_index],
     rv_count = individuals$RV_count[carrier_index],
-    rv_effect = carrier_effect[carrier_index],
-    probability_method = "PAIR (summary)"
+    probability_method = "PAIR (summary)",
+    K = K, SP = SP, r2_liability = r2_liability
   )
   ggplot2::ggsave(
     file.path(figure_dir, "apoe_rv_carrier_points_v1.png"), apoe_rv_plot,

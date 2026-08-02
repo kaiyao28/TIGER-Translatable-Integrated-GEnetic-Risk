@@ -71,7 +71,7 @@ Keep APOE status in a separate individual-level table:
 
 Join APOE status to the PRS table by `ID`, never by row position. Check for
 duplicated IDs, unmatched individuals, unexpected genotype labels and missing
-values before calling `apply_high_impact_probability()`. The genotype labels
+values before calling `high_impact_method_probability()`. The genotype labels
 must match the `Genotype` values in the APOE case/control reference.
 
 ## Individual carrier-status schema
