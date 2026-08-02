@@ -1,0 +1,40 @@
+cff-version: 1.2.0
+title: "TIGER: Translatable Integrated Genetic Risk framework"
+message: Please cite this software and the underlying method publications.
+type: software
+authors:
+  - name: TIGER study authors
+version: 0.1.0-dev
+license: GPL-3.0-or-later
+references:
+  - type: article
+    title: Estimating disorder probability based on polygenic prediction using the BPC approach
+    authors:
+      - family-names: Uffelmann
+        given-names: Emil
+    journal: Nature Communications
+    year: 2025
+    volume: 16
+    doi: 10.1038/s41467-025-62929-x
+  - type: article
+    title: A tool for translating polygenic scores onto the absolute scale using summary statistics
+    authors:
+      - family-names: Pain
+        given-names: Oliver
+    journal: European Journal of Human Genetics
+    year: 2022
+    volume: 30
+    start: 339
+    end: 348
+    doi: 10.1038/s41431-021-01028-z
+  - type: article
+    title: Probability of Alzheimer's disease based on common and rare genetic variants
+    authors:
+      - family-names: Escott-Price
+        given-names: Valentina
+      - family-names: Schmidt
+        given-names: Karl Michael
+    journal: Alzheimer's Research & Therapy
+    year: 2021
+    volume: 13
+    doi: 10.1186/s13195-021-00884-7

@@ -1,0 +1,20 @@
+Package: TIGER
+Type: Package
+Title: Translatable Integrated Genetic Risk Framework
+Version: 0.1.0.9000
+Authors@R: c(
+    person("TIGER", "study authors", role = "aut"),
+    person("TIGER", "maintainer", email = "maintainer@tiger.invalid", role = "cre")
+  )
+Description: Transparent functions for translating liability-scale polygenic
+    risk scores to absolute binary-disorder probabilities and then applying
+    separately modelled common high-impact variants and rare-variant carrier
+    effects. The framework keeps modelling decisions and input evidence
+    explicit and supports BPC, PAIR summary, PAIR sample and Pain probability
+    conversions.
+License: GPL (>= 3) + file LICENSE
+Encoding: UTF-8
+Depends: R (>= 4.1.0)
+Suggests:
+    ggplot2,
+    readxl

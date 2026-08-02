@@ -1,0 +1,12 @@
+.Rhistory
+.RData
+.Rproj.user/
+*.Rproj
+renv/library/
+renv/staging/
+*.html
+*.png
+*.pdf
+!examples/figures/*.png
+!inst/extdata/reference/SCZ/*.xlsx
+!inst/extdata/reference/AD/*.xlsx
