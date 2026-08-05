@@ -69,7 +69,70 @@ Expected result: the scripts print probabilities, create five figures under
 | APOE status | Optional genotype column with one value per individual |
 | RV status | Optional delimited RV-ID column or mapped logical/0–1 columns |
 
-## 6. Replace the synthetic files carefully
+## 6. Run one complete PRS + RV + APOE example
+
+This self-contained example defines the individual data and both required
+references before calculating all four probability conditions:
+
+```r
+K <- 0.01
+SP <- 0.50
+r2_liability <- 0.10
+
+individuals <- data.frame(
+  ID = sprintf("P%03d", 1:6),
+  PRS_liability = c(-0.80, -0.25, 0.05, 0.30, 0.65, 1.00),
+  Group = c("Control", "Control", "Control", "Case", "Case", "Case"),
+  RV_status = c("", "PROTECT_C", "RISK_A", "", "RISK_B",
+                "RISK_A;PROTECT_C"),
+  APOE = c("e2/e2", "e2/e3", "e2/e4", "e3/e3", "e3/e4", "e4/e4")
+)
+
+rv_reference <- data.frame(
+  ID = c("RISK_A", "RISK_B", "PROTECT_C"),
+  Symbol = c("GENE_A", "GENE_B", "GENE_C"),
+  Class = c("PTV", "Damaging_missense", "Protective"),
+  Case_freq = c(0.010, 0.015, 0.003),
+  Control_freq = c(0.002, 0.005, 0.008),
+  OR = c(8.0, 4.0, 0.4)
+)
+
+apoe_reference <- data.frame(
+  Genotype = c("e2/e2", "e2/e3", "e2/e4", "e3/e3", "e3/e4", "e4/e4"),
+  Case_freq = c(0.0016, 0.0528, 0.0240, 0.4356, 0.3960, 0.0900),
+  Control_freq = c(0.0064, 0.1264, 0.0208, 0.6241, 0.2054, 0.0169)
+)
+
+results <- tiger_probabilities(
+  data = individuals,
+  K = K,
+  SP = SP,
+  method = "PAIR (summary)",
+  id_col = "ID",
+  prs_col = "PRS_liability",
+  group_col = "Group",
+  r2_liability = r2_liability,
+  include_rv = TRUE,
+  rv_reference = rv_reference,
+  rv_status_col = "RV_status",
+  rv_prevalence = SP,
+  include_apoe = TRUE,
+  apoe_col = "APOE",
+  apoe_reference = apoe_reference
+)
+
+results[c(
+  "ID", "Probability_PRS", "Probability_PRS_RV",
+  "Probability_PRS_APOE", "Probability_PRS_APOE_RV"
+)]
+```
+
+`Group` is retained for plotting but does not affect the calculations. Empty
+`RV_status` values mean that the individual carries none of the listed RVs.
+Multiple RV IDs are separated by a semicolon. The reference values above are
+illustrative and must be replaced with suitable study references.
+
+## 7. Replace the synthetic files carefully
 
 Work through this order:
 
