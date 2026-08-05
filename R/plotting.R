@@ -872,11 +872,6 @@ plot_tiger_apoe_rv_carrier_points <- function(
     group_input, if (grouped_points) length(prs_curve) + n else n,
     group_colours
   )
-  curve_groups <- if (grouped_points) {
-    groups$group[seq_along(prs_curve)]
-  } else {
-    NULL
-  }
   carrier_groups <- if (grouped_points) {
     groups$group[length(prs_curve) + seq_len(n)]
   } else {
@@ -914,55 +909,89 @@ plot_tiger_apoe_rv_carrier_points <- function(
                      !nzchar(trimws(probability_method))) "" else
     paste0(": ", trimws(probability_method))
   if (grouped_points) {
-    curves$PRS_group <- factor(curves$PRS_group, levels = levels(curve_groups))
-    genotype_labels <- do.call(rbind, lapply(genotype_order, function(g) {
-      available <- curves[curves$Genotype == g, , drop = FALSE]
-      if (!nrow(available)) return(NULL)
-      available[which.min(abs(available$Probability - 0.5)),
-                c("PRS", "Probability", "Genotype"), drop = FALSE]
+    reference_prs <- seq(min(prs_curve), max(prs_curve), length.out = 200L)
+    reference_probability <- if (apoe_update == "direct") {
+      stats::approx(prs_curve, probability_prs, xout = reference_prs,
+                    ties = mean, rule = 2)$y
+    } else {
+      NULL
+    }
+    reference_curves <- do.call(rbind, lapply(genotype_order, function(genotype) {
+      probability <- if (apoe_update == "direct") {
+        apply_high_impact_probability(reference_probability, genotype, reference)
+      } else {
+        high_impact_method_probability(
+          reference_prs, genotype, reference, K = K, SP = SP,
+          method = probability_method, r2_liability = r2_liability
+        )
+      }
+      data.frame(
+        PRS = reference_prs, Probability = probability,
+        Genotype = factor(genotype, levels = genotype_order)
+      )
     }))
-    plot <- ggplot2::ggplot(curves, ggplot2::aes(PRS, Probability))
+    label_targets <- stats::setNames(
+      seq(0.65, 0.35, length.out = length(genotype_order)), genotype_order
+    )
+    genotype_labels <- do.call(rbind, lapply(genotype_order, function(genotype) {
+      genotype_curve <- reference_curves[
+        reference_curves$Genotype == genotype, , drop = FALSE
+      ]
+      genotype_curve[
+        which.min(abs(genotype_curve$Probability - label_targets[[genotype]])),
+        , drop = FALSE
+      ]
+    }))
+    plot <- ggplot2::ggplot(curves, ggplot2::aes(PRS, Probability)) +
+      ggplot2::geom_label(
+        data = genotype_labels,
+        ggplot2::aes(x = PRS, y = Probability,
+                     colour = Genotype, label = Genotype),
+        inherit.aes = FALSE, fill = "white", linewidth = 0.2,
+        size = 3.1, fontface = "bold", show.legend = FALSE
+      )
     if (isTRUE(show_prs_points)) {
       plot <- plot + ggplot2::geom_point(
-        ggplot2::aes(colour = PRS_group), shape = 21, fill = NA,
-        size = prs_point_size, alpha = prs_point_alpha, stroke = 0.55
-      )
-    }
-    if (!is.null(genotype_labels) && nrow(genotype_labels)) {
-      plot <- plot + ggplot2::geom_text(
-        data = genotype_labels,
-        ggplot2::aes(PRS, Probability, label = Genotype),
-        inherit.aes = FALSE, nudge_y = 0.055, size = 3,
-        colour = "grey20", check_overlap = TRUE
+        ggplot2::aes(fill = PRS_group), shape = 21, colour = "white",
+        size = prs_point_size, alpha = prs_point_alpha, stroke = 0.25
+      ) + ggplot2::geom_point(
+        shape = 21, fill = "white", colour = "white",
+        size = max(0.1, prs_point_size * 0.48), alpha = 1, stroke = 0
       )
     }
     plot <- plot + ggplot2::geom_point(
       data = carriers,
       ggplot2::aes(PRS, Probability_after_RV,
-                   fill = Carrier_group, shape = RV_count_group),
-      inherit.aes = FALSE, colour = rv_point_border,
+                   fill = Carrier_group,
+                   shape = RV_count_group),
+      inherit.aes = FALSE,
+      colour = rv_point_border,
       alpha = rv_point_alpha, size = rv_point_size,
       stroke = rv_point_stroke
     ) +
-      ggplot2::scale_colour_manual(values = groups$colours) +
-      ggplot2::scale_fill_manual(values = groups$colours, guide = "none") +
+      ggplot2::scale_colour_manual(values = genotype_colours) +
+      ggplot2::scale_fill_manual(values = groups$colours) +
       ggplot2::scale_shape_manual(values = rv_shapes) +
       ggplot2::coord_cartesian(xlim = range(prs_curve), ylim = y_limits) +
       ggplot2::guides(
         colour = ggplot2::guide_legend(
-          order = 1, nrow = 1, byrow = TRUE,
-          override.aes = list(shape = 21, fill = NA, alpha = 1, size = 3)
+          order = 1, nrow = 1, byrow = TRUE
         ),
         shape = ggplot2::guide_legend(
           order = 2, nrow = 1, byrow = TRUE,
           override.aes = .tiger_rv_shape_legend
+        ),
+        fill = ggplot2::guide_legend(
+          order = 3, nrow = 1, byrow = TRUE,
+          override.aes = .tiger_group_legend
         )
       ) +
       ggplot2::labs(
         x = "Liability PRS", y = "Estimated disorder probability",
-        colour = "Group", fill = "Group", shape = "Number of RVs",
+        colour = NULL, fill = "Carrier group",
+        shape = "Number of RVs",
         title = paste0("APOE distributions with RV carriers", method_text),
-        subtitle = "Colour: group; labels: observed APOE genotype; filled points: RV-adjusted carriers"
+        subtitle = "Hollow circles: PRS + APOE; solid points: PRS + APOE + RV"
       ) +
       tiger_plot_theme()
     if (isTRUE(show_rv_labels) && !is.null(rv_labels)) {

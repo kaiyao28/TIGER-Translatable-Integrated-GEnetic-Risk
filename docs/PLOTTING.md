@@ -125,13 +125,13 @@ plot_tiger_apoe_curves(
 )
 ```
 
-When `plot_tiger_apoe_rv_carrier_points()` is called without `prs_group`, the
-same `apoe_colours` vector preserves identical genotype colours across the two
-line-based APOE figures. When `prs_group` is supplied, the combined plot instead
-uses unconnected points in one panel. Supply each individual's observed APOE
-genotype through `prs_apoe`. Colour identifies the group, while the six
-genotype-specific distributions are separated by their probability trajectories
-and labelled directly. Filled RV-carrier points retain the group colour.
+When `prs_group` and `prs_apoe` are supplied, simulated or observed individuals
+appear as hollow circles at the PRS + APOE probability for their supplied APOE
+genotype. Circle colour identifies their optional group, such as case or
+control. Solid points show RV-adjusted probabilities and retain the same group
+colour, while shape distinguishes one from multiple RVs. The six genotype
+distributions are labelled directly near their midpoints, using the consistent
+`apoe_colours` palette, rather than adding another set of coloured lines.
 
 ## Standard ggplot2 editing
 
