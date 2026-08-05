@@ -52,3 +52,41 @@ genotype-specific prevalence parameters before applying the same RV operator.
 The bundled APOE frequencies are illustrative and should be replaced when an
 appropriate population- and phenotype-matched reference is available.
 }
+\examples{
+# Begin with PRS only
+individuals <- data.frame(
+  ID = c("P001", "P002", "P003"),
+  PRS_liability = c(-0.5, 0, 0.5),
+  RV_status = c("", "RISK_A", "PROTECT_C"),
+  APOE = c("e2/e3", "e3/e3", "e3/e4")
+)
+
+prs_results <- tiger_probabilities(
+  individuals, K = 0.01, SP = 0.5,
+  method = "PAIR (summary)", r2_liability = 0.1
+)
+
+# Add RV and APOE after the PRS-only call works
+rv_reference <- data.frame(
+  ID = c("RISK_A", "PROTECT_C"),
+  Symbol = c("GENE_A", "GENE_C"),
+  Class = c("PTV", "Protective"),
+  Case_freq = c(0.010, 0.003),
+  Control_freq = c(0.002, 0.008),
+  OR = c(8.0, 0.4)
+)
+
+full_results <- tiger_probabilities(
+  individuals, K = 0.01, SP = 0.5,
+  method = "PAIR (summary)", r2_liability = 0.1,
+  include_rv = TRUE, rv_reference = rv_reference,
+  rv_status_col = "RV_status", rv_prevalence = 0.5,
+  include_apoe = TRUE, apoe_col = "APOE",
+  apoe_reference = tiger_default_apoe_reference()
+)
+
+full_results[c(
+  "ID", "Probability_PRS", "Probability_PRS_RV",
+  "Probability_PRS_APOE", "Probability_PRS_APOE_RV"
+)]
+}

@@ -69,7 +69,32 @@ Expected result: the scripts print probabilities, create five figures under
 | APOE status | Optional genotype column with one value per individual |
 | RV status | Optional delimited RV-ID column or mapped logical/0–1 columns |
 
-## 6. Run one complete PRS + RV + APOE example
+## 6. Start with PRS only
+
+The smallest useful call needs an ID, a liability-scale PRS, `K`, `SP`, and the
+method-specific PRS input:
+
+```r
+individuals_prs <- data.frame(
+  ID = c("P001", "P002", "P003"),
+  PRS_liability = c(-0.50, 0.00, 0.50)
+)
+
+results_prs <- tiger_probabilities(
+  individuals_prs,
+  K = 0.01,
+  SP = 0.50,
+  method = "PAIR (summary)",
+  r2_liability = 0.10
+)
+
+results_prs[c("ID", "Probability_PRS")]
+```
+
+Use this first to confirm that the PRS inputs and probability conversion work.
+The optional RV and APOE layers can then be added independently or together.
+
+## 7. Add RV and APOE layers
 
 This self-contained example defines the individual data and both required
 references before calculating all four probability conditions:
@@ -103,6 +128,23 @@ apoe_reference <- data.frame(
   Control_freq = c(0.0064, 0.1264, 0.0208, 0.6241, 0.2054, 0.0169)
 )
 
+# PRS + RV only
+results_rv <- tiger_probabilities(
+  individuals, K = K, SP = SP,
+  method = "PAIR (summary)", r2_liability = r2_liability,
+  include_rv = TRUE, rv_reference = rv_reference,
+  rv_status_col = "RV_status", rv_prevalence = SP
+)
+
+# PRS + APOE only
+results_apoe <- tiger_probabilities(
+  individuals, K = K, SP = SP,
+  method = "PAIR (summary)", r2_liability = r2_liability,
+  include_apoe = TRUE, apoe_col = "APOE",
+  apoe_reference = apoe_reference
+)
+
+# Full PRS + RV + APOE model
 results <- tiger_probabilities(
   data = individuals,
   K = K,
@@ -132,7 +174,7 @@ results[c(
 Multiple RV IDs are separated by a semicolon. The reference values above are
 illustrative and must be replaced with suitable study references.
 
-## 7. Replace the synthetic files carefully
+## 8. Replace the synthetic files carefully
 
 Work through this order:
 
