@@ -1,109 +1,21 @@
-# TIGER: Translatable Integrated Genetic Risk framework
+<p align="center">
+  <img src="docs/assets/tiger-readme-header-v4.png" alt="TIGER — Translatable Integrated GEnetic Risk" width="100%">
+</p>
 
-TIGER is a simulation-free R framework for estimating absolute binary-disorder
-probabilities from polygenic risk, rare variants and separately modelled common
-high-impact variants such as APOE.
+TIGER is an R framework for converting a liability-scale polygenic risk score
+(PRS) into a disorder probability and optionally incorporating rare variants
+(RVs) and a separately modelled common high-impact variant such as APOE.
 
 ```text
-                         ┌─ PRS only
-PRS ─> absolute          ├─ PRS + RV
-      probability ───────┼─ PRS + APOE / common high-impact variant
-                         └─ PRS + APOE / high-impact variant + RV
+Liability-scale PRS  ──┬─> PRS probability
+                       ├─> PRS + RV probability
+                       ├─> PRS + APOE probability
+                       └─> PRS + APOE + RV probability
 ```
 
-APOE and RV are separate optional components. APOE is not treated as an RV.
+APOE and RVs are independent optional layers. APOE is not treated as an RV.
 
-## Start here
-
-1. Prepare a correctly centred liability-scale PRS and matching liability-scale
-   PRS R².
-2. Supply separate individual records for PRS, APOE status and RV carrier
-   status.
-3. Supply justified case/control evidence for APOE and RV effects.
-4. Choose and justify population prevalence `K`, sample prevalence `SP`, and the RV
-   calculation level (`SP_RV`; default 0.50 for a balanced sample).
-5. Calculate PRS only, PRS + RV, PRS + APOE, or the combined probability.
-
-### First prepare the liability-scale PRS
-
-TIGER probability functions do not take an unprocessed PRS directly. Prepare:
-
-- the target-sample PRS on the observed scale; and
-- PRSs from an ancestry-matched population reference sample.
-
-Both sets of scores must use the same variants, effect estimates, effect
-alleles, and population-reference allele-frequency centring. Convert them with
-the disorder prevalence and sample prevalence used for score construction:
-
-```r
-K <- 0.01          # justified population prevalence
-SP_score <- 0.50   # ascertainment represented during PRS construction
-
-converted <- prepare_liability_prs_inputs(
-  target_prs_observed = target$PRS_observed,
-  reference_prs_observed = reference$PRS_observed,
-  K = K,
-  SP = SP_score,
-  center_on_reference = FALSE
-)
-
-individuals$PRS_liability <- converted$target_prs_liability
-reference_prs_liability <- converted$reference_prs_liability
-r2_liability <- converted$r2_liability
-```
-
-Use `center_on_reference = FALSE` when both input scores were already centred
-using the same reference allele frequencies. Do not independently standardise
-the target and reference PRSs. The converted PRS and its matching
-reference-derived liability-scale R² must remain together in subsequent
-analyses. `SP_score` controls the scale conversion. The later `SP` controls the
-probability prior in the target context and need not always equal `SP_score`.
-
-If reference-derived liability-scale R² is unavailable, a compatible
-observed-scale R² from an independently evaluated or leave-one-out PRS analysis
-may be converted instead:
-
-```r
-r2_liability <- observed_to_liability_r2(
-  r2_observed = reported_r2_observed,
-  K = K,
-  SP = SP_evaluation
-)
-```
-
-`SP_evaluation` must be the case proportion in the sample where the reported R²
-was estimated. The reported PRS must match the target score construction and
-ancestry closely enough to justify transfer. The converted `r2_liability` can
-then be used by BPC, GenoPred, and PAIR (summary). PAIR (sample) instead uses
-externally estimated case/control PRS moments.
-
-See the [full preparation and QC guide](docs/LIABILITY_PRS_GUIDE.md) and
-the runnable [`liability_conversion_example.R`](examples/liability_conversion_example.R).
-
-The worked-example defaults are:
-
-```r
-K <- 0.01
-SP <- 0.50
-r2_liability <- 0.10
-SP_RV <- 0.50
-```
-
-PAIR (summary) is the default example method. These values are instructional,
-not universal disease parameters.
-
-## Quick example
-
-New to TIGER? Start with [`GETTING_STARTED.md`](docs/GETTING_STARTED.md). Core
-calculations use R 4.1+; figures require `ggplot2` and supplied Excel references
-require `readxl`.
-
-If using RStudio, open `TIGER.Rproj` first. This sets the repository as the
-working project. Then run the complete synthetic workflow in
-`examples/example_data_and_plots.R` from top to bottom. The shorter code below
-is organised in cumulative sections and assumes earlier sections have run.
-
-Install the development version directly from GitHub:
+## Installation
 
 ```r
 install.packages("remotes") # once, if needed
@@ -114,10 +26,243 @@ remotes::install_github(
 library(TIGER)
 ```
 
-Package functions remain plain, reviewable R source under `R/`; installation
-does not hide the implementation.
+Core calculations require R 4.1 or later. Plotting functions require
+`ggplot2`, and reading supplied Excel references requires `readxl`.
 
-From the `TIGER` directory:
+## 1. Prepare the liability-scale PRS
+
+All TIGER probability methods require a correctly centred liability-scale PRS.
+Target and population-reference scores must use the same variants, effect
+alleles, effect estimates, and reference-frequency centring.
+
+```r
+converted <- prepare_liability_prs_inputs(
+  target_prs_observed = target$PRS_observed,
+  reference_prs_observed = reference$PRS_observed,
+  K = 0.01,
+  SP = 0.50,
+  center_on_reference = FALSE
+)
+
+individuals$PRS_liability <- converted$target_prs_liability
+reference_prs_liability <- converted$reference_prs_liability
+r2_liability <- converted$r2_liability
+```
+
+Use `center_on_reference = FALSE` when both input scores were already centred
+using the same population-reference allele frequencies. Do not independently
+standardise the target and reference PRSs.
+
+If reference-derived liability-scale R² is unavailable, a compatible
+independently evaluated or leave-one-out observed-scale R² may be converted:
+
+```r
+r2_liability <- observed_to_liability_r2(
+  r2_observed = reported_r2_observed,
+  K = 0.01,
+  SP = SP_evaluation
+)
+```
+
+`SP_evaluation` is the case proportion in the sample where the observed-scale
+R² was estimated. See the [liability-scale PRS guide](docs/LIABILITY_PRS_GUIDE.md)
+for score construction, centring, R² alternatives, and quality control.
+
+## 2. Prepare one individual table
+
+One row represents one person. Only `ID` and `PRS_liability` are required.
+Group, RV, and APOE columns are optional.
+
+| ID   | PRS_liability | Group (optional) | RV_status (optional) | APOE (optional) |
+| ---- | ------------: | ---------------- | -------------------- | --------------- |
+| P001 |         -0.42 | Control          |                      | e3/e3           |
+| P002 |          0.31 | Case             | RISK_A               | e3/e4           |
+| P003 |          0.18 | Case             | RISK_A;PROTECT_C     | e4/e4           |
+
+Column names can be specified when calling `tiger_probabilities()`. RV status
+may be a delimited list of RV-reference IDs or separate logical/0–1 columns.
+`Group` is optional plotting information only and does not affect any
+probability calculation.
+
+When RVs are included, provide one reference row per RV. Its `ID` must match
+the value used in `RV_status`:
+
+| ID        | Symbol | Class      | Case_freq | Control_freq |  OR |
+| --------- | ------ | ---------- | --------: | -----------: | --: |
+| RISK_A    | GENE_A | PTV        |     0.010 |        0.002 | 8.0 |
+| PROTECT_C | GENE_C | Protective |     0.003 |        0.008 | 0.4 |
+
+When APOE is included, provide mutually exclusive genotype frequencies among
+cases and controls. Each frequency column must sum to one:
+
+| Genotype | Case_freq | Control_freq |
+| -------- | --------: | -----------: |
+| e2/e2    |    0.0016 |       0.0064 |
+| e2/e3    |    0.0528 |       0.1264 |
+| e2/e4    |    0.0240 |       0.0208 |
+| e3/e3    |    0.4356 |       0.6241 |
+| e3/e4    |    0.3960 |       0.2054 |
+| e4/e4    |    0.0900 |       0.0169 |
+
+These values are illustrative. Use references appropriate to the phenotype,
+ancestry, population, and intended probability scale. See
+[DATA.md](docs/DATA.md) for complete schemas and
+[REFERENCE_DATA.md](docs/REFERENCE_DATA.md) for reference preparation and
+provenance.
+
+## 3. Calculate probabilities
+
+`tiger_probabilities()` is the main application function. PRS + RV + APOE is
+shown below. Disable either optional layer by setting its flag to `FALSE`.
+
+```r
+results <- tiger_probabilities(
+  data = individuals,
+  K = 0.01,
+  SP = 0.50,
+  method = "PAIR (summary)",
+  id_col = "ID",
+  prs_col = "PRS_liability",
+  group_col = "Group",
+  r2_liability = r2_liability,
+  include_rv = TRUE,
+  rv_reference = rv_reference,
+  rv_status_col = "RV_status",
+  rv_prevalence = 0.50,
+  include_apoe = TRUE,
+  apoe_col = "APOE",
+  apoe_reference = apoe_reference
+)
+```
+
+The input columns and row order are preserved. Depending on the enabled
+layers, TIGER appends:
+
+- `Probability_PRS`
+- `Probability_PRS_RV`
+- `Probability_PRS_APOE`
+- `Probability_PRS_APOE_RV`
+
+RV count and damaging/protective component columns are also returned when RVs
+are enabled.
+
+### PRS only
+
+```r
+results_prs <- tiger_probabilities(
+  individuals,
+  K = 0.01, SP = 0.50,
+  method = "PAIR (summary)",
+  r2_liability = r2_liability
+)
+```
+
+`results_prs$Probability_PRS` contains the PRS-derived probability. The optional
+`plot_tiger_prs_methods()` example below compares the available methods.
+
+<img src="examples/figures/prs_method_comparison_v1.png" alt="PRS probability-method comparison" width="650">
+
+### PRS + RV
+
+```r
+results_rv <- tiger_probabilities(
+  individuals,
+  K = 0.01, SP = 0.50,
+  method = "PAIR (summary)",
+  r2_liability = r2_liability,
+  include_rv = TRUE,
+  rv_reference = rv_reference,
+  rv_status_col = "RV_status",
+  rv_prevalence = 0.50
+)
+```
+
+`results_rv` contains `Probability_PRS` and `Probability_PRS_RV`, allowing the
+probability before and after RV incorporation to be compared directly. The
+optional example uses `plot_tiger_rv_carrier_points()`.
+
+<img src="examples/figures/rv_carrier_points_v4.png" alt="PRS and RV-adjusted carrier probabilities" width="650">
+
+### PRS + APOE
+
+```r
+results_apoe <- tiger_probabilities(
+  individuals,
+  K = 0.01, SP = 0.50,
+  method = "PAIR (summary)",
+  r2_liability = r2_liability,
+  include_apoe = TRUE,
+  apoe_col = "APOE",
+  apoe_reference = apoe_reference
+)
+```
+
+`results_apoe` contains `Probability_PRS` and `Probability_PRS_APOE`. The
+optional `plot_tiger_apoe_curves()` example shows how the same PRS maps to
+genotype-specific probabilities.
+
+<img src="examples/figures/apoe_genotype_curves_v2.png" alt="APOE genotype-specific probability distributions" width="650">
+
+### PRS + APOE + RV
+
+```r
+results_combined <- tiger_probabilities(
+  individuals,
+  K = 0.01, SP = 0.50,
+  method = "PAIR (summary)",
+  r2_liability = r2_liability,
+  include_rv = TRUE,
+  rv_reference = rv_reference,
+  rv_status_col = "RV_status",
+  rv_prevalence = 0.50,
+  include_apoe = TRUE,
+  apoe_col = "APOE",
+  apoe_reference = apoe_reference
+)
+```
+
+`results_combined` contains all four probability conditions. The optional
+`plot_tiger_apoe_rv_carrier_points()` example shows RV-adjusted carrier
+probabilities relative to the APOE genotype distributions.
+
+<img src="examples/figures/apoe_rv_carrier_points_v1.png" alt="APOE genotype distributions and RV-adjusted carriers" width="650">
+
+RVs require an RV effect reference. For APOE, a user-supplied population- and
+phenotype-matched reference is preferred. If it is omitted, TIGER reports that
+the illustrative bundled reference is being used. A separately modelled APOE
+region should be excluded from the input PRS.
+
+## Probability methods
+
+TIGER supports:
+
+- `"BPC"`
+- `"GenoPred"`
+- `"PAIR (summary)"`, using theoretical moments derived from liability-scale R²
+- `"PAIR (sample)"`, using case/control PRS moments from a suitable sample
+
+Change the `method` argument and supply its required inputs. PAIR (summary) is
+used in the worked example. See [METHODS.md](docs/METHODS.md) for definitions,
+assumptions, formulas, and the lower-level method-specific functions.
+
+## Plotting is optional
+
+The returned table can be analysed or plotted with any software. TIGER's
+plotting functions are optional conveniences and are kept separate from the
+probability calculations.
+
+- [PLOTTING.md](docs/PLOTTING.md) explains the available plots, aesthetics,
+  labels, colours, point sizes, and direct `ggplot2` editing.
+- [example_data_and_plots.R](examples/example_data_and_plots.R) is a complete
+  runnable example using synthetic data.
+- Generated example figures are stored under `examples/figures/`.
+
+The helpers used above return ordinary `ggplot` objects, so users may modify
+them or plot the returned TIGER probability columns independently.
+
+## Run the examples
+
+From the repository root:
 
 ```bash
 Rscript examples/liability_conversion_example.R
@@ -125,252 +270,30 @@ Rscript examples/example_data_and_plots.R
 Rscript tests/run_tests.R
 ```
 
-The examples use synthetic inputs under `inst/extdata/example/` and produce all four
-probability conditions plus the documented plots. No files outside this
-repository are required.
-
-## Three levels of implementation
-
-The levels are cumulative. Begin by converting PRS to probabilities, then add
-RV information, and finally add APOE or another separately modelled common
-high-impact variant. Complete data-loading and ID-matching code is provided in
-[`USAGE.md`](docs/USAGE.md).
-
-### Level 1: PRS-to-probability conversion
-
-TIGER includes the three conversion approaches evaluated by the framework:
-BPC, GenoPred, and PAIR. PAIR is available with theoretical summary-derived
-moments or with externally estimated case/control sample moments.
-
-```r
-# BPC
-p_bpc <- bpc_probability(
-  individuals$PRS_liability, K = K, SP = SP,
-  r2_liability = r2_liability
-)
-
-# GenoPred
-r2_observed <- liability_to_observed_r2(r2_liability, K = K, SP = SP)
-p_genopred <- genopred_probability(
-  individuals$PRS_liability,
-  reference_prs_liability,
-  r2_observed = r2_observed,
-  K = K,
-  SP = SP
-)
-
-# PAIR (summary), the worked-example default
-p_prs <- pair_probability_summary(
-  individuals$PRS_liability, K, SP, r2_liability
-)
-```
-
-`PAIR (sample)` is available through `pair_probability_sample()` when
-case/control PRS moments have been estimated in an appropriate independent
-calibration sample.
-
-### Level 2: PRS + rare variants
-
-Apply the RV layer to the selected PRS probability. The PRS curve is common to
-all externally defined groups. Group differences are shown by the adjusted
-carrier points rather than by separate PRS curves.
-
-Example inputs:
-
-**Individual PRS input**
-
-| ID | PRS_liability |
-| --- | ---: |
-| P001 | -3.50 |
-| P002 | -3.00 |
-
-**RV effect reference**
-
-| ID | Symbol | Class | Case_freq | Control_freq | OR |
-| --- | --- | --- | ---: | ---: | ---: |
-| RISK_A | GENE_A | PTV | 0.010 | 0.002 | 8.0 |
-| PROTECT_C | GENE_C | Protective | 0.003 | 0.008 | 0.4 |
-
-**Individual RV-carrier input**
-
-| ID | Variant_ID | Carrier |
-| --- | --- | ---: |
-| P005 | RISK_A | 1 |
-| P005 | RISK_B | 1 |
-
-Repeated IDs indicate multiple RVs. Omitted IDs are non-carriers in this
-presence-only format. See the complete synthetic
-[PRS](inst/extdata/example/example_individuals.csv),
-[RV reference](inst/extdata/example/example_rv_reference.csv), and
-[RV-carrier](inst/extdata/example/example_rv_carriers.csv) files and the
-[schema](docs/DATA.md#individual-carrier-status-schema).
-
-```r
-rv_result <- apply_rv_carriers(
-  p_prs, carrier_matrix, odds_ratios, prevalence = SP_RV
-)
-
-# TRUE for each person carrying at least one RV; FALSE for non-carriers.
-carrier_index <- rv_result$RV_count > 0
-
-# Make an explicit carrier-only table for plotting.
-carriers <- individuals[carrier_index, , drop = FALSE]
-carriers$Probability_before_RV <- p_prs[carrier_index]
-carriers$Probability_after_RV <-
-  rv_result$probability_after[carrier_index]
-carriers$RV_count <- rv_result$RV_count[carrier_index]
-rv_labels_by_id <- tapply(
-  rv_carriers$Variant_ID, rv_carriers$ID,
-  function(x) paste(unique(x), collapse = "; ")
-)
-carriers$RV_label <- unname(rv_labels_by_id[carriers$ID])
-carriers$Carrier_group <- carrier_groups$Carrier_group[
-  match(carriers$ID, carrier_groups$ID)
-]
-group_colours <- c("Group A" = "#3182BD", "Group B" = "#E31A1C")
-
-plot_tiger_rv_carrier_points(
-  prs_curve = prs_sequence,
-  probability_curve = p_sequence,
-  carrier_prs = carriers$PRS_liability,
-  carrier_probability_before = carriers$Probability_before_RV,
-  carrier_probability_after = carriers$Probability_after_RV,
-  rv_count = carriers$RV_count,
-  rv_labels = carriers$RV_label,
-  carrier_group = carriers$Carrier_group,
-  group_colours = group_colours
-)
-```
-
-`carrier_index` is `TRUE` for carriers. The resulting table keeps all plotting
-inputs in the same individual order. `drop = FALSE` preserves a data frame when
-only one carrier is present.
-
-The curve is PRS only. Points are shown only for RV carriers. A circle denotes
-one RV and a triangle denotes two or more RVs. The example uses two external
-groups to demonstrate point colours. Point colour never represents damaging or
-protective RV direction.
-
-See the [figure-customisation guide](docs/PLOTTING.md#rv-carrier-points) to
-show RV names, separate nearby labels with guide lines, or change point size,
-opacity, shape, border, group colours and legends.
-
-![PRS curve with adjusted points only for RV carriers](examples/figures/rv_carrier_points_v4.png)
-
-### Level 3: PRS + APOE or another high-impact variant + RV
-
-First recalculate the selected PRS conversion using genotype-specific
-population and sample prevalence. Then apply the same RV layer to the
-APOE-updated probabilities.
-
-Example inputs, joined to the PRS table by `ID`:
-
-**Individual APOE-status input**
-
-| ID | APOE |
-| --- | --- |
-| P001 | e2/e3 |
-| P003 | e3/e4 |
-
-**APOE case/control reference**
-
-| Genotype | Case_freq | Control_freq |
-| --- | ---: | ---: |
-| e2/e2 | 0.0016 | 0.0064 |
-| e4/e4 | 0.0900 | 0.0169 |
-
-The complete reference must contain all six genotypes, with case and control
-frequencies each summing to one. See the synthetic
-[APOE-status](inst/extdata/example/example_apoe_status.csv) and
-[APOE-reference](inst/extdata/example/example_apoe_reference.csv) files and the
-[schema](docs/DATA.md#individual-apoe-status-schema).
-
-```r
-p_prs_apoe <- high_impact_method_probability(
-  individuals$PRS_liability, individuals$APOE, apoe_reference,
-  K = K, SP = SP, method = "PAIR (summary)", r2_liability = r2_liability
-)
-
-plot_tiger_apoe_curves(
-  prs_sequence, p_sequence, apoe_reference,
-  K = K, SP = SP, r2_liability = r2_liability
-)
-
-combined_result <- apply_rv_carriers(
-  p_prs_apoe, carrier_matrix, odds_ratios, prevalence = SP_RV
-)
-
-# Add the combined-model probabilities to the same carrier-only table.
-carriers$Probability_APOE_before_RV <- p_prs_apoe[carrier_index]
-carriers$Probability_APOE_after_RV <-
-  combined_result$probability_after[carrier_index]
-
-plot_tiger_apoe_rv_carrier_points(
-  prs_curve = prs_sequence,
-  probability_prs = p_sequence,
-  apoe_reference = apoe_reference,
-  carrier_prs = carriers$PRS_liability,
-  carrier_apoe = carriers$APOE,
-  carrier_probability_before_rv = carriers$Probability_APOE_before_RV,
-  carrier_probability_after_rv = carriers$Probability_APOE_after_RV,
-  rv_count = carriers$RV_count,
-  rv_labels = carriers$RV_label,
-  carrier_group = carriers$Carrier_group,
-  group_colours = group_colours,
-  K = K, SP = SP, r2_liability = r2_liability
-)
-```
-
-The APOE-only figure shows one updated PRS curve per genotype. In the combined
-figure, those curves stay common across external groups. Coloured points show
-the final group-specific RV-carrier observations, while shape distinguishes one
-from multiple RVs. APOE is modelled separately and is not treated as an RV.
-The same [RV point and label controls](docs/PLOTTING.md#rv-carrier-points) apply
-to this combined figure.
-
-![APOE genotype probability curves](examples/figures/apoe_genotype_curves_v2.png)
-
-![APOE curves with adjusted points only for RV carriers](examples/figures/apoe_rv_carrier_points_v1.png)
-
-The complete runnable code—including creation of `prs_sequence` and carrier
-subsets—is in [`USAGE.md`](docs/USAGE.md) and
-`examples/example_data_and_plots.R`.
+The example data are synthetic and require no external individual-level data.
 
 ## Documentation
 
-| Guide                                            | Contents                                                 |
-| ------------------------------------------------ | -------------------------------------------------------- |
-| [`GETTING_STARTED.md`](docs/GETTING_STARTED.md) | Installation, first run, glossary and common errors      |
-| [`USAGE.md`](docs/USAGE.md)                     | Complete application code and plotting examples          |
-| [`METHODS.md`](docs/METHODS.md)                 | PAIR summary/sample, BPC, GenoPred, APOE and RV methods  |
-| [`PLOTTING.md`](docs/PLOTTING.md)               | Point styling, group colours, legends and ggplot editing |
-| [`DATA.md`](docs/DATA.md)                       | PRS, APOE, RV-reference and individual-status schemas    |
-| [`REFERENCE_DATA.md`](docs/REFERENCE_DATA.md)   | Separate SCZ/AD references and custom-reference creation |
-| [`LIABILITY_PRS_GUIDE.md`](docs/LIABILITY_PRS_GUIDE.md) | Liability-scale PRS preparation for all methods          |
-| [`AD_APOE_GUIDE.md`](docs/AD_APOE_GUIDE.md)     | APOE-region exclusion and AD/APOE application            |
-| [`REFERENCES.md`](docs/REFERENCES.md)           | Method publications and adaptations                      |
-
-## Repository structure
-
-```text
-R/                 loader, probability, reference, high-impact, RV and plotting functions
-inst/extdata/example/      synthetic input-format examples
-inst/extdata/reference/    separate SCZ and AD reference inputs
-examples/          runnable application examples and rendered figures
-tests/             dependency-light checks
-```
+| Guide                                                | Purpose                                              |
+| ---------------------------------------------------- | ---------------------------------------------------- |
+| [GETTING_STARTED.md](docs/GETTING_STARTED.md)         | Installation, first run, glossary, and common errors |
+| [USAGE.md](docs/USAGE.md)                             | Complete high- and lower-level application workflows |
+| [LIABILITY_PRS_GUIDE.md](docs/LIABILITY_PRS_GUIDE.md) | Liability-scale PRS preparation and R² inputs       |
+| [DATA.md](docs/DATA.md)                               | Individual, RV, and high-impact reference schemas    |
+| [METHODS.md](docs/METHODS.md)                         | Probability methods, APOE update, and RV framework   |
+| [PLOTTING.md](docs/PLOTTING.md)                       | Optional plotting and customisation                  |
+| [REFERENCE_DATA.md](docs/REFERENCE_DATA.md)           | Supplied SCZ/AD references and custom references     |
+| [AD_APOE_GUIDE.md](docs/AD_APOE_GUIDE.md)             | APOE-region exclusion and AD/APOE application        |
+| [REFERENCES.md](docs/REFERENCES.md)                   | Method publications and adaptations                  |
 
 ## Scope
 
-TIGER does not run GWAS, calculate PRSs from genotype files, select scientific
-inputs, establish clinical utility or replace external validation. Users must
-justify ancestry, prevalence, SP, score construction, effect evidence,
-overlap and independence assumptions. See [`USAGE.md`](docs/USAGE.md) and the focused guides
-before application.
+TIGER does not run GWAS, construct PRSs from genotype files, select scientific
+inputs, establish clinical utility, or replace external validation. Users must
+justify ancestry, population prevalence `K`, sample prevalence `SP`, PRS and
+reference compatibility, variant independence, and overlap between separately
+modelled components.
 
-## Development
-
-TIGER is under development in preparation for publication. Cloning, testing,
-discussion and reviewed pull requests are welcome. See
-[`CONTRIBUTING.md`](docs/CONTRIBUTING.md), [`NOTICE.md`](docs/NOTICE.md),
-[`CITATION.cff`](CITATION.cff) and the GPL v3-or-later [`LICENSE`](LICENSE).
+TIGER is under development in preparation for publication. See
+[CONTRIBUTING.md](docs/CONTRIBUTING.md), [NOTICE.md](docs/NOTICE.md),
+[CITATION.cff](CITATION.cff), and the GPL v3-or-later [LICENSE](LICENSE).

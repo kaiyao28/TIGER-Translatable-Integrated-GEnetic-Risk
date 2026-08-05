@@ -10,5 +10,6 @@ renv/staging/
 *.png
 *.pdf
 !examples/figures/*.png
+!docs/assets/*.png
 !inst/extdata/reference/SCZ/*.xlsx
 !inst/extdata/reference/AD/*.xlsx

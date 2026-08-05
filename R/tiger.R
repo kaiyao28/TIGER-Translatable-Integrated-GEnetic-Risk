@@ -7,6 +7,7 @@ load_tiger <- function(root = ".", envir = parent.frame()) {
     "high_impact_variants.R",
     "rare_variant_probability.R",
     "reference_data.R",
+    "workflow.R",
     "plotting.R"
   ))
   missing <- files[!file.exists(files)]

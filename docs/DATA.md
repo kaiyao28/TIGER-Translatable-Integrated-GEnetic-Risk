@@ -60,9 +60,10 @@ genotype frequencies from named e2/e3/e4 case and control allele frequencies,
 but this makes a Hardy-Weinberg equilibrium assumption. See
 [`AD_APOE_GUIDE.md`](AD_APOE_GUIDE.md) for application and PRS-overlap guidance.
 
-## Individual APOE-status schema
+## Lower-level separate APOE-status schema
 
-Keep APOE status in a separate individual-level table:
+APOE status may be maintained in a separate source table before constructing
+the merged input:
 
 | Field | Definition |
 |---|---|
@@ -74,10 +75,29 @@ duplicated IDs, unmatched individuals, unexpected genotype labels and missing
 values before calling `high_impact_method_probability()`. The genotype labels
 must match the `Genotype` values in the APOE case/control reference.
 
-## Individual carrier-status schema
+## Merged individual-table schema
 
-Individual RV status should be supplied separately from the RV effect
-reference. TIGER accepts a long table with:
+`tiger_probabilities()` can read PRS, optional group information, APOE status,
+and RV status from one table. One row must represent one unique individual.
+
+| Example field | Definition |
+|---|---|
+| `ID` | Unique individual identifier |
+| `PRS_liability` | Finite liability-scale PRS |
+| `Group` (optional) | Group retained unchanged for analysis or plotting |
+| `APOE` (optional) | Genotype matching the high-impact reference |
+| `RV_status` (optional) | Delimited list of IDs matching the RV reference |
+
+All names can be configured through `id_col`, `prs_col`, `group_col`,
+`apoe_col`, and `rv_status_col`. Instead of `RV_status`, `rv_columns` can map
+RV-reference IDs to separate logical or 0/1 columns. An empty status means no
+carried RV. Unknown RV IDs and unknown APOE genotypes produce errors.
+
+## Lower-level separate carrier-status schema
+
+For direct use of `prepare_rv_carrier_matrix()` and `apply_rv_carriers()`, RV
+status may instead be kept separately from the RV effect reference. This
+lower-level interface accepts a long table with:
 
 | Field | Definition |
 |---|---|
@@ -93,7 +113,10 @@ pairs are intentionally interpreted as non-carriers.
 
 The files under `inst/extdata/example/` are synthetic demonstrations only:
 
-- `example_individuals.csv`: IDs and liability-scale PRS;
+- `example_individuals.csv`: IDs, liability-scale PRS, and optional plotting
+  groups for separate group-specific PRS distributions. The synthetic example
+  contains 200 observations for each APOE genotype, balanced as 100 controls
+  and 100 cases;
 - `example_apoe_status.csv`: a separate individual-level ID/APOE genotype
   record joined to the PRS input by ID;
 - `example_target_prs_observed.csv`: synthetic target scores before liability
@@ -103,8 +126,6 @@ The files under `inst/extdata/example/` are synthetic demonstrations only:
 - `example_rv_reference.csv`: three illustrative RV effects;
 - `example_rv_carriers.csv`: presence-only carrier rows, including people with
   one RV and more than one RV;
-- `example_carrier_groups.csv`: two synthetic external groups used only to
-  demonstrate carrier-point colours; and
 - `example_apoe_reference.csv`: illustrative case/control genotype frequencies.
 
 Do not place identifiable individual-level data in a public repository.

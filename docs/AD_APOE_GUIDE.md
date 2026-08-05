@@ -21,9 +21,10 @@ that would double count some of the same information.
 
 ## Inputs
 
-TIGER requires a separate individual-level APOE status file with one unique
-`ID, APOE` record for each person. Join this file to the prepared PRS input by
-ID and stop on missing or duplicated records. TIGER also requires either:
+The main TIGER interface requires one APOE genotype value per person in the
+individual table. If APOE starts in a separate `ID, APOE` file, join it to the
+prepared PRS input by ID and stop on missing or duplicated records. TIGER also
+requires either:
 
 1. observed frequencies of the six APOE genotypes among comparable cases and
    controls (preferred); or

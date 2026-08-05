@@ -15,8 +15,6 @@ rv_reference <- prepare_rv_reference(
 )
 rv_carriers <- read.csv(tiger_example_file("example_rv_carriers.csv"),
                         stringsAsFactors = FALSE)
-carrier_groups <- read.csv(tiger_example_file("example_carrier_groups.csv"),
-                           stringsAsFactors = FALSE)
 apoe_reference <- prepare_high_impact_reference(
   read.csv(tiger_example_file("example_apoe_reference.csv"), stringsAsFactors = FALSE)
 )
@@ -30,64 +28,45 @@ apoe_match <- match(individuals$ID, apoe_status$ID)
 if (anyNA(apoe_match)) stop("APOE status is missing for one or more individuals")
 individuals$APOE <- apoe_status$APOE[apoe_match]
 
+# Add the presence-only RV records to the same individual table. Multiple RV
+# IDs are separated by semicolons; an empty value means no carried RV.
+rv_ids_by_person <- split(rv_carriers$Variant_ID, rv_carriers$ID)
+individuals$RV_status <- vapply(individuals$ID, function(id) {
+  carried <- rv_ids_by_person[[id]]
+  if (is.null(carried)) "" else paste(unique(carried), collapse = ";")
+}, character(1))
+
 # Illustrative modelling values only; users must replace and justify these.
 K <- 0.01
 SP <- 0.50
 r2_liability <- 0.10
 SP_RV <- 0.50
 
-# 1. PRS probability. PAIR (summary) is the worked-example default.
-individuals$Probability_PRS <- pair_probability_summary(
-  individuals$PRS_liability, K = K, SP = SP,
-  r2_liability = r2_liability
+# Calculate all four conditions through TIGER's main merged-table interface.
+# The example PRS is assumed to have excluded the APOE region.
+individuals <- tiger_probabilities(
+  individuals, K = K, SP = SP, method = "PAIR (summary)",
+  r2_liability = r2_liability,
+  include_rv = TRUE, rv_reference = rv_reference,
+  rv_status_col = "RV_status", rv_prevalence = SP_RV,
+  include_apoe = TRUE, apoe_col = "APOE",
+  apoe_reference = apoe_reference
 )
 
-# 2. APOE update. The example PRS is assumed to have excluded the APOE region.
-individuals$Probability_PRS_APOE <- high_impact_method_probability(
-  individuals$PRS_liability, individuals$APOE, apoe_reference,
-  K = K, SP = SP, method = "PAIR (summary)",
-  r2_liability = r2_liability
-)
-
-# 3. RV update from a separate presence-only carrier table. Because the full ID
-# and variant sets are supplied, omitted pairs are interpreted as non-carriers.
-carrier_matrix <- prepare_rv_carrier_matrix(
-  rv_carriers,
-  individual_ids = individuals$ID,
-  variant_ids = rv_reference$ID
-)
-odds_ratios <- stats::setNames(rv_reference$OR, rv_reference$ID)
-rv_update <- apply_rv_carriers(
-  individuals$Probability_PRS,
-  carrier_matrix = carrier_matrix,
-  odds_ratios = odds_ratios,
-  prevalence = SP_RV
-)
-individuals$RV_count <- rv_update$RV_count
-individuals$Probability_PRS_RV <- rv_update$probability_after
-
-# 4. Apply the same RV layer after APOE.
-combined_update <- apply_rv_carriers(
-  individuals$Probability_PRS_APOE,
-  carrier_matrix = carrier_matrix,
-  odds_ratios = odds_ratios,
-  prevalence = SP_RV
-)
-individuals$Probability_PRS_APOE_RV <- combined_update$probability_after
-
-print(individuals[, c(
+example_output <- individuals[, c(
   "ID", "PRS_liability", "APOE", "RV_count", "Probability_PRS",
   "Probability_PRS_RV", "Probability_PRS_APOE",
   "Probability_PRS_APOE_RV"
-)])
+)]
+print(utils::head(example_output, 12))
+message("Calculated probabilities for ", nrow(example_output),
+        " synthetic individuals; the first 12 are shown.")
 
 if (requireNamespace("ggplot2", quietly = TRUE)) {
   figure_dir <- "examples/figures"
   dir.create(figure_dir, recursive = TRUE, showWarnings = FALSE)
 
-  # Instructional distributions are separate from the individual carrier file.
-  # A dense standard liability-PRS sequence produces smooth, interpretable
-  # curves; it is not a simulated cohort.
+  # A dense PRS sequence is retained for the genotype-specific APOE curves.
   prs_sequence <- seq(-4, 4, by = 0.05)
   plot_K <- 0.01
   plot_SP <- 0.50
@@ -95,13 +74,39 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
   plot_p_prs <- pair_probability_summary(
     prs_sequence, K = plot_K, SP = plot_SP, r2_liability = plot_r2l
   )
-  carrier_index <- rv_update$RV_count > 0
-  carrier_group_match <- match(individuals$ID[carrier_index], carrier_groups$ID)
-  if (anyNA(carrier_group_match)) {
-    stop("Example carrier group is missing for one or more RV carriers")
+  reference_quantiles <- stats::qnorm(
+    (seq_len(500) - 0.5) / 500
+  ) * sqrt(plot_r2l)
+  plot_r2o <- liability_to_observed_r2(plot_r2l, plot_K, plot_SP)
+  method_plot <- plot_tiger_prs_methods(
+    prs = prs_sequence,
+    bpc_probability = bpc_probability(
+      prs_sequence, plot_K, plot_SP, plot_r2l
+    ),
+    genopred_probability = genopred_probability(
+      prs_sequence, reference_quantiles, plot_r2o,
+      plot_K, SP = plot_SP
+    ),
+    pair_probability = plot_p_prs
+  )
+  ggplot2::ggsave(
+    file.path(figure_dir, "prs_method_comparison_v1.png"), method_plot,
+    width = 7.5, height = 5.2, dpi = 160
+  )
+
+  rv_reference_plot <- plot_tiger_rv_reference(
+    rv_reference, prevalence = SP_RV
+  )
+  ggplot2::ggsave(
+    file.path(figure_dir, "rv_probability_reference_v1.png"),
+    rv_reference_plot, width = 7.5, height = 4.8, dpi = 160
+  )
+  if (anyNA(individuals$Group) || any(!nzchar(individuals$Group))) {
+    stop("Example group is missing for one or more individuals")
   }
-  plotted_carrier_group <-
-    carrier_groups$Carrier_group[carrier_group_match]
+  plotted_prs_group <- individuals$Group
+  carrier_index <- individuals$RV_count > 0
+  plotted_carrier_group <- plotted_prs_group[carrier_index]
   rv_labels_by_id <- tapply(
     rv_carriers$Variant_ID, rv_carriers$ID,
     function(x) paste(unique(x), collapse = "; ")
@@ -110,11 +115,12 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
     rv_labels_by_id[individuals$ID[carrier_index]]
   )
   plotted_group_colours <- c(
-    "Group A" = "#3182BD", "Group B" = "#E31A1C"
+    "Control" = "#3182BD", "Case" = "#E31A1C"
   )
   rv_plot <- plot_tiger_rv_carrier_points(
-    prs_curve = prs_sequence,
-    probability_curve = plot_p_prs,
+    prs_curve = individuals$PRS_liability,
+    probability_curve = individuals$Probability_PRS,
+    prs_group = plotted_prs_group,
     carrier_prs = individuals$PRS_liability[carrier_index],
     carrier_probability_before = individuals$Probability_PRS[carrier_index],
     carrier_probability_after = individuals$Probability_PRS_RV[carrier_index],
@@ -142,8 +148,8 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
   )
 
   apoe_rv_plot <- plot_tiger_apoe_rv_carrier_points(
-    prs_curve = prs_sequence,
-    probability_prs = plot_p_prs,
+    prs_curve = individuals$PRS_liability,
+    probability_prs = individuals$Probability_PRS,
     apoe_reference = apoe_reference,
     carrier_prs = individuals$PRS_liability[carrier_index],
     carrier_apoe = individuals$APOE[carrier_index],
@@ -152,6 +158,8 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
     carrier_probability_after_rv =
       individuals$Probability_PRS_APOE_RV[carrier_index],
     rv_count = individuals$RV_count[carrier_index],
+    prs_group = plotted_prs_group,
+    prs_apoe = individuals$APOE,
     rv_labels = plotted_rv_labels,
     carrier_group = plotted_carrier_group,
     group_colours = plotted_group_colours,
@@ -160,6 +168,6 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
   )
   ggplot2::ggsave(
     file.path(figure_dir, "apoe_rv_carrier_points_v1.png"), apoe_rv_plot,
-    width = 10.5, height = 6.5, dpi = 160
+    width = 11.5, height = 7.2, dpi = 160
   )
 }

@@ -4,6 +4,10 @@
 # See LICENSE.
 
 # Translate an odds ratio into an intrinsic damaging or protective probability.
+# For OR >= 1, p = prevalence*(OR-1)/(1 + prevalence*(OR-1)). For OR < 1,
+# TIGER applies the inverted effect to the complementary, disease-free
+# probability, which simplifies to
+# (1-prevalence)*(1-OR)/(1-prevalence*(1-OR)).
 intrinsic_rv_probability <- function(odds_ratio, prevalence = 0.5) {
   if (length(prevalence) != 1L || !is.finite(prevalence) ||
       prevalence <= 0 || prevalence >= 1) {

@@ -52,7 +52,7 @@ Rscript examples/example_data_and_plots.R
 Rscript tests/run_tests.R
 ```
 
-Expected result: the scripts print probabilities, create three figures under
+Expected result: the scripts print probabilities, create five figures under
 `examples/figures/`, and the tests finish with `All tests passed.`
 
 ## 5. Understand the key terms
@@ -66,21 +66,23 @@ Expected result: the scripts print probabilities, create three figures under
 | `SP_RV` | Background level for the RV update; default 0.50 for the balanced sample calculation |
 | `r2_liability` | Variance explained by the PRS on the liability scale |
 | PAIR (summary) | Default example conversion using theoretical moments from `K` and liability-scale R² |
-| APOE status | One separate individual-level genotype record per ID |
-| RV status | A separate individual-by-variant carrier record |
+| APOE status | Optional genotype column with one value per individual |
+| RV status | Optional delimited RV-ID column or mapped logical/0–1 columns |
 
 ## 6. Replace the synthetic files carefully
 
 Work through this order:
 
 1. Prepare target and population-reference PRSs on the required scale.
-2. Replace `example_individuals.csv` with unique IDs and liability-scale PRSs.
-3. If using APOE, provide a separate unique `ID,APOE` file.
-4. If using RVs, provide a separate carrier-status file and a harmonised effect
+2. Prepare one individual table with unique IDs, liability-scale PRSs, and an
+   optional `Group` column for plotting.
+3. If using APOE, add one genotype column and prepare a genotype-frequency
    reference.
-5. Match records by ID, never by row position.
+4. If using RVs, add a delimited RV-status column or mapped logical/0–1 columns
+   and prepare a harmonised RV effect reference.
+5. Match any source records by ID before constructing the merged table.
 6. Replace and justify `K`, `SP`, `SP_RV` and liability-scale R².
-7. Re-run validation and inspect the four probability conditions.
+7. Call `tiger_probabilities()` and inspect the requested probability columns.
 
 Use [`USAGE.md`](USAGE.md) for the complete code, [`DATA.md`](DATA.md) for file
 schemas, and [`REFERENCE_DATA.md`](REFERENCE_DATA.md) for supplied or custom

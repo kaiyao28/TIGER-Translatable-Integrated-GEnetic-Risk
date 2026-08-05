@@ -88,12 +88,55 @@ protective probability. `apply_rv_carriers()` combines zero, one or multiple
 carried RVs and applies them to a PRS or PRS-plus-APOE probability. This
 combination assumes independent effects.
 
+For a damaging effect with `OR >= 1`, TIGER uses
+
+```text
+p_damaging = prevalence * (OR - 1) / {1 + prevalence * (OR - 1)}.
+```
+
+For a protective effect with `OR < 1`, TIGER applies the inverted effect to the
+complementary disease-free probability:
+
+```text
+p_protective = (1 - prevalence) * (1 - OR) /
+               {1 - prevalence * (1 - OR)}.
+```
+
+The individual update is
+
+```text
+P_after = (1 - p_protective) *
+          {1 - (1 - P_before) * (1 - p_damaging)}.
+```
+
+Damaging RVs therefore act on the remaining disease-free probability and
+protective RVs multiply the result downward. Same-direction probabilities from
+multiple carried RVs are combined as `1 - product(1 - p_j)`.
+
 The RV functions default to `prevalence = 0.50` (`SP_RV = 0.50`). This defines
 the balanced 50:50 case/control sample calculation and gives
 a sample-level overall RV probability. If the reference frequencies/effects
 and intended output are population-level, supply a justified population-level
 background probability instead. Do not mix sample-level case/control evidence
 with a population-level interpretation without an explicit adaptation.
+
+## Canonical calculation order
+
+The audited TIGER workflow uses the following order:
+
+1. Convert the liability-scale PRS with one selected method to obtain `P_PRS`.
+2. If a separately modelled common high-impact genotype is included, calculate
+   genotype-specific `K_g` and `SP_g` and rerun that same conversion to obtain
+   `P_PRS_high_impact`.
+3. Apply the same independently specified RV operator either to `P_PRS` or to
+   `P_PRS_high_impact`.
+
+This produces directly comparable PRS, PRS + RV, PRS + high-impact, and PRS +
+high-impact + RV probabilities. Do not apply both the method-specific APOE
+recalculation and `apply_high_impact_probability()` to the same person. They are
+alternative high-impact updates. Use the same RV reference, carrier matrix, and
+background prevalence when comparing RV effects before and after the
+high-impact update.
 
 See [`DATA.md`](DATA.md) for all input formats and [`REFERENCES.md`](REFERENCES.md)
 for the underlying publications.

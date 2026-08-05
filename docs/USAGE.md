@@ -36,13 +36,82 @@ the same population-reference allele frequencies. See
 [`LIABILITY_PRS_GUIDE.md`](LIABILITY_PRS_GUIDE.md) for the complete preparation and QC
 workflow. A runnable example is in `examples/liability_conversion_example.R`.
 
-## 2. Read the separate input records
+## 2. Use one merged individual table
+
+The simplest interface accepts one row per person. The table may contain any
+additional columns, including a study group. Only the configured column names
+are interpreted by TIGER.
+
+```r
+individuals <- data.frame(
+  participant_id = c("P001", "P002", "P003"),
+  Group = c("Control", "Case", "Case"),
+  PRS_liability = c(-0.42, 0.31, 0.18),
+  RV_status = c("", "RISK_A", "RISK_A;PROTECT_C"),
+  APOE = c("e3/e3", "e3/e4", "e4/e4")
+)
+
+rv_reference <- prepare_rv_reference(read.csv(
+  tiger_example_file("example_rv_reference.csv")
+))
+apoe_reference <- prepare_high_impact_reference(read.csv(
+  tiger_example_file("example_apoe_reference.csv")
+))
+
+results <- tiger_probabilities(
+  individuals, K = K, SP = 0.50,
+  method = "PAIR (summary)",
+  id_col = "participant_id", prs_col = "PRS_liability",
+  group_col = "Group", r2_liability = r2_liability,
+  include_rv = TRUE, rv_reference = rv_reference,
+  rv_status_col = "RV_status", rv_prevalence = 0.50,
+  include_apoe = TRUE, apoe_col = "APOE",
+  apoe_reference = apoe_reference
+)
+```
+
+`RV_status` lists reference IDs separated by semicolons, commas, or vertical
+bars. Alternatively, use separate 0/1 columns and map them explicitly:
+
+```r
+results <- tiger_probabilities(
+  individuals_wide, K = K, SP = 0.50,
+  r2_liability = r2_liability,
+  include_rv = TRUE, rv_reference = rv_reference,
+  rv_columns = c(
+    RISK_A = "carries_risk_a",
+    PROTECT_C = "carries_protect_c"
+  )
+)
+```
+
+The names on the left must match `ID` in the RV reference. The values on the
+right name columns in the individual table. The original columns are preserved
+and output rows remain aligned to their input IDs.
+
+| Optional layers | Returned probability columns |
+|---|---|
+| neither | `Probability_PRS` |
+| RV | `Probability_PRS`, `Probability_PRS_RV` |
+| APOE | `Probability_PRS`, `Probability_PRS_APOE` |
+| RV and APOE | all four conditions, including `Probability_PRS_APOE_RV` |
+
+Both optional layers default to off. `rv_reference` is mandatory when
+`include_rv = TRUE`. When `include_apoe = TRUE`, supply a matched
+`apoe_reference`. Omitting it uses `tiger_default_apoe_reference()` with a
+visible message so the assumption is not hidden.
+
+## 3. Lower-level, separate-record workflow
+
+The following sections expose the underlying calculations for users who need
+to inspect or customise each stage.
+
+### Read the separate input records
 
 ```r
 individuals <- read.csv(tiger_example_file("example_individuals.csv"))
 apoe_status <- read.csv(tiger_example_file("example_apoe_status.csv"))
 rv_status <- read.csv(tiger_example_file("example_rv_carriers.csv"))
-carrier_groups <- read.csv(tiger_example_file("example_carrier_groups.csv"))
 
 rv_reference <- prepare_rv_reference(read.csv(
   tiger_example_file("example_rv_reference.csv")
@@ -52,10 +121,11 @@ apoe_reference <- prepare_high_impact_reference(read.csv(
 ))
 ```
 
-APOE status and RV status are individual-level records separate from the PRS.
+The PRS table contains the individual ID, liability-scale PRS, and optional
+plotting group. APOE and RV status remain separate individual-level records.
 Reference files contain effect/frequency evidence, not individual status.
 
-## 3. Match APOE status by ID
+### Match APOE status by ID
 
 ```r
 if (anyDuplicated(individuals$ID) || anyDuplicated(apoe_status$ID)) {
@@ -70,7 +140,7 @@ individuals$APOE <- apoe_status$APOE[apoe_match]
 
 Never join individual files by assumed row order.
 
-## 4. Calculate the four probability conditions
+### Calculate the four probability conditions
 
 PAIR (summary) is the worked-example default:
 
@@ -142,7 +212,7 @@ The four results are:
 APOE is a common high-impact component, not an RV. Either optional component
 may be used alone or both may be included.
 
-## 5. Assemble and export a results table
+### Assemble and export a results table
 
 ```r
 results <- data.frame(
@@ -165,31 +235,28 @@ identifiers without the required governance and disclosure controls.
 
 ## 6. Plot RV carriers
 
-The line is PRS only. Points are shown only for RV carriers. Shape distinguishes
-one RV from two or more. All points use one neutral fill unless an external
-`carrier_group` is supplied. Colour is not used to encode damaging or protective
-direction because that direction is already visible from the probability shift.
+Unconnected hollow circles show the PRS-only distributions for the two groups.
+Larger filled points show RV-adjusted carriers in the matching group colour.
+Shape distinguishes one RV from two or more. Colour is not used to encode
+damaging or protective direction because that direction is visible from the
+probability shift.
 
 ![PRS curve with adjusted points only for RV carriers](../examples/figures/rv_carrier_points_v4.png)
 
 ```r
-prs_sequence <- seq(-4, 4, by = 0.05)
-p_sequence <- pair_probability_summary(
-  prs_sequence, K = K, SP = SP, r2_liability = r2l
-)
+individual_group <- individuals$Group
 carrier_index <- rv_result$RV_count > 0
-carrier_group <- carrier_groups$Carrier_group[
-  match(individuals$ID[carrier_index], carrier_groups$ID)
-]
+carrier_group <- individual_group[carrier_index]
 rv_labels_by_id <- tapply(
   rv_status$Variant_ID, rv_status$ID,
   function(x) paste(unique(x), collapse = "; ")
 )
 rv_labels <- unname(rv_labels_by_id[individuals$ID[carrier_index]])
-group_colours <- c("Group A" = "#3182BD", "Group B" = "#E31A1C")
+group_colours <- c("Control" = "#3182BD", "Case" = "#E31A1C")
 plot_tiger_rv_carrier_points(
-  prs_curve = prs_sequence,
-  probability_curve = p_sequence,
+  prs_curve = individuals$PRS_liability,
+  probability_curve = p_prs,
+  prs_group = individual_group,
   carrier_prs = individuals$PRS_liability[carrier_index],
   carrier_probability_before = p_prs[carrier_index],
   carrier_probability_after = rv_result$probability_after[carrier_index],
@@ -200,10 +267,10 @@ plot_tiger_rv_carrier_points(
 )
 ```
 
-To compare externally defined groups, supply one `carrier_group` per carrier
-and optional named `group_colours`. RV names are shown when `rv_labels` is
-supplied. Point opacity defaults to 1 and can be reduced with
-`rv_point_alpha`. See [`PLOTTING.md`](PLOTTING.md).
+Supply one `prs_group` per PRS value and the corresponding `carrier_group` for
+each carrier. The same named `group_colours` are applied to hollow PRS
+observations and filled adjusted points. RV names are shown when `rv_labels` is supplied. See
+[`PLOTTING.md`](PLOTTING.md).
 
 ## 7. Plot APOE and combined APOE + RV
 
@@ -212,6 +279,11 @@ APOE-only genotype curves:
 ![APOE genotype probability curves](../examples/figures/apoe_genotype_curves_v2.png)
 
 ```r
+prs_sequence <- seq(-4, 4, by = 0.05)
+p_sequence <- pair_probability_summary(
+  prs_sequence, K = K, SP = SP, r2_liability = r2l
+)
+
 plot_tiger_apoe_curves(
   prs_sequence,
   p_sequence,
@@ -220,14 +292,15 @@ plot_tiger_apoe_curves(
 )
 ```
 
-APOE curves with final probabilities plotted only for RV carriers:
+Group-specific APOE distributions with final probabilities plotted for RV
+carriers:
 
 ![APOE curves with adjusted RV-carrier points](../examples/figures/apoe_rv_carrier_points_v1.png)
 
 ```r
 plot_tiger_apoe_rv_carrier_points(
-  prs_curve = prs_sequence,
-  probability_prs = p_sequence,
+  prs_curve = individuals$PRS_liability,
+  probability_prs = p_prs,
   apoe_reference = apoe_reference,
   carrier_prs = individuals$PRS_liability[carrier_index],
   carrier_apoe = individuals$APOE[carrier_index],
@@ -235,6 +308,8 @@ plot_tiger_apoe_rv_carrier_points(
   carrier_probability_after_rv =
     combined_result$probability_after[carrier_index],
   rv_count = rv_result$RV_count[carrier_index],
+  prs_group = individual_group,
+  prs_apoe = individuals$APOE,
   rv_labels = rv_labels,
   carrier_group = carrier_group,
   group_colours = group_colours,
@@ -242,8 +317,12 @@ plot_tiger_apoe_rv_carrier_points(
 )
 ```
 
-All plotting helpers use `tiger_plot_theme()` and shared APOE/RV visual
-conventions.
+Observed APOE status is supplied through `prs_apoe`. Each person therefore
+contributes one point calculated with the corresponding genotype-specific
+`K_g` and `SP_g`. All six genotype distributions are shown together and labelled
+directly. Blue and red indicate controls and cases. Filled RV-carrier points
+retain the group colour, and shape identifies one or multiple RVs.
+All plotting helpers use `tiger_plot_theme()` and shared APOE/RV conventions.
 
 ## Run the complete example
 
