@@ -1,4 +1,4 @@
-#' TIGER: Translatable Integrated Genetic Risk framework
+#' TIGER: Translatable Integrated Genetic Risk
 #'
 #' TIGER provides transparent R functions for combining liability-scale
 #' polygenic risk, separately modelled common high-impact variants, and rare

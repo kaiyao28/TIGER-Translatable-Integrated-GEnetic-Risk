@@ -1,4 +1,4 @@
-# TIGER: Translatable Integrated Genetic Risk framework.
+# TIGER: Translatable Integrated Genetic Risk.
 # Copyright (C) 2026 TIGER study authors
 # Licensed under GNU GPL v3 or later; distributed WITHOUT ANY WARRANTY.
 

@@ -2,7 +2,7 @@
   <img src="docs/assets/tiger-readme-header-v4.png" alt="TIGER — Translatable Integrated GEnetic Risk" width="100%">
 </p>
 
-TIGER is an R framework for converting a liability-scale polygenic risk score
+TIGER is an R package for converting a liability-scale polygenic risk score
 (PRS) into a disorder probability and optionally incorporating rare variants
 (RVs) and a separately modelled common high-impact variant such as APOE.
 
@@ -20,14 +20,15 @@ APOE and RVs are independent optional layers. APOE is not treated as an RV.
 ```r
 install.packages("remotes") # once, if needed
 remotes::install_github(
-  "kaiyao28/TIGER-Translatable-Integrated-Genetic-Risk-Framework",
+  "kaiyao28/TIGER-Translatable-Integrated-Genetic-Risk",
   build_vignettes = FALSE
 )
 library(TIGER)
 ```
 
-Core calculations require R 4.1 or later. Plotting functions require
-`ggplot2`, and reading supplied Excel references requires `readxl`.
+Core calculations require R 4.1 or later. Optional plotting functions require
+`ggplot2`. The `read_tiger_reference()` helper requires `readxl` when importing
+Excel reference files.
 
 ## 1. Prepare the liability-scale PRS
 
@@ -280,7 +281,7 @@ The example data are synthetic and require no external individual-level data.
 | [USAGE.md](docs/USAGE.md)                             | Complete high- and lower-level application workflows |
 | [LIABILITY_PRS_GUIDE.md](docs/LIABILITY_PRS_GUIDE.md) | Liability-scale PRS preparation and R² inputs       |
 | [DATA.md](docs/DATA.md)                               | Individual, RV, and high-impact reference schemas    |
-| [METHODS.md](docs/METHODS.md)                         | Probability methods, APOE update, and RV framework   |
+| [METHODS.md](docs/METHODS.md)                         | Probability methods, APOE update, and RV integration |
 | [PLOTTING.md](docs/PLOTTING.md)                       | Optional plotting and customisation                  |
 | [REFERENCE_DATA.md](docs/REFERENCE_DATA.md)           | Supplied SCZ/AD references and custom references     |
 | [AD_APOE_GUIDE.md](docs/AD_APOE_GUIDE.md)             | APOE-region exclusion and AD/APOE application        |

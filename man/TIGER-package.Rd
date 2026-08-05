@@ -1,7 +1,7 @@
 \name{TIGER-package}
 \alias{TIGER}
 \alias{TIGER-package}
-\title{TIGER: Translatable Integrated Genetic Risk framework}
+\title{TIGER: Translatable Integrated Genetic Risk}
 \description{
 Transparent R functions for combining liability-scale polygenic risk,
 separately modelled common high-impact variants, and rare-variant carrier
