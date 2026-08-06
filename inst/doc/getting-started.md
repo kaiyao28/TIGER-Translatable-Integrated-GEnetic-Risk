@@ -35,4 +35,4 @@ when the reference evidence and intended interpretation are population-level.
 Use `?tiger_probabilities`, `?TIGER-high-impact`, and `?TIGER-plots` for the
 main interfaces. Full input, liability-scale PRS, method, and plotting guides
 are available from the
-[TIGER repository](https://github.com/Mengyin1223/TIGER).
+[TIGER repository](https://github.com/kaiyao28/TIGER-Translatable-Integrated-Genetic-Risk).

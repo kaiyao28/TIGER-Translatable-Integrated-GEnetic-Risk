@@ -63,10 +63,8 @@ a correctly centred liability-scale PRS. Follow the detailed
 ### GenoPred
 
 `genopred_probability()` applies the quantile conversion described by Pain et
-al. The legacy name `pain_probability()` is retained for backward
-compatibility.
-It requires target and population-reference PRSs, observed-scale R², `K`, `SP`
-and a justified quantile specification.
+al. It requires target and population-reference PRSs, observed-scale R², `K`,
+`SP` and a justified quantile specification.
 
 ## Common high-impact variants
 

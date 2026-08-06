@@ -7,10 +7,8 @@
 \alias{liability_to_observed_r2}
 \alias{bpc_probability}
 \alias{genopred_probability}
-\alias{pain_probability}
 \alias{pair_probability_summary}
 \alias{pair_probability_sample}
-\alias{pair_probability}
 \alias{intrinsic_rv_probability}
 \alias{combine_independent_rv_probabilities}
 \alias{apply_rv_probability}
@@ -34,6 +32,5 @@ Use \code{pair_probability_summary()} as the default worked-example method.
 Read the repository's docs/GETTING_STARTED.md, docs/USAGE.md and docs/METHODS.md before applying
 the functions to study data. In particular, exclude any separately modelled
 region from the PRS and use compatible liability-scale inputs.
-Use \code{genopred_probability()} for the GenoPred conversion. The legacy
-\code{pain_probability()} name remains available for backward compatibility.
+Use \code{genopred_probability()} for the GenoPred conversion.
 }

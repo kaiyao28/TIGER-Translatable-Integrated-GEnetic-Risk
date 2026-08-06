@@ -9,7 +9,8 @@ effects.
 }
 \details{
 The implementations remain directly reviewable in the repository's \code{R/}
-directory at \url{https://github.com/Mengyin1223/TIGER}. See the repository
+directory at \url{https://github.com/kaiyao28/TIGER-Translatable-Integrated-Genetic-Risk}.
+See the repository
 README and guides for input preparation and modelling decisions. The installed
 quick guide is returned by
 \code{system.file("doc", "getting-started.md", package = "TIGER")}. See

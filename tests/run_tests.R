@@ -40,7 +40,6 @@ outputs <- list(
   genopred_probability(prs, reference, r2o, K, SP),
   pair_probability_summary(prs, K, SP, r2l)
 )
-stopifnot(identical(genopred_probability, pain_probability))
 stopifnot(all(vapply(outputs, function(x) {
   length(x) == length(prs) && all(is.finite(x)) &&
     all(x >= 0) && all(x <= 1)
@@ -51,7 +50,6 @@ stopifnot(all(is.finite(extreme_bpc)), all(extreme_bpc >= 0),
           all(extreme_bpc <= 1))
 
 pair_summary <- pair_probability_summary(prs, K, SP, r2l)
-stopifnot(identical(pair_probability(prs, K, SP, r2l), pair_summary))
 threshold <- -stats::qnorm(K)
 density <- stats::dnorm(threshold)
 i_case <- density / K
@@ -344,7 +342,7 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
     genopred_probability = genopred_probability(
       prs, reference, r2o, K, SP
     ),
-    pair_probability = pair_probability_summary(prs, K, SP, r2l)
+    pair_summary_probability = pair_probability_summary(prs, K, SP, r2l)
   )
   stopifnot(inherits(method_plot, "ggplot"))
   rv_reference_plot <- plot_tiger_rv_reference(

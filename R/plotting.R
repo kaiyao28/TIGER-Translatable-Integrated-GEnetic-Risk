@@ -165,7 +165,7 @@ tiger_plot_theme <- function(base_size = 12) {
 # values. Calculation stays in probability_methods.R; this helper only reshapes
 # supplied results for a consistent plot.
 plot_tiger_prs_methods <- function(
-    prs, bpc_probability, genopred_probability, pair_probability,
+    prs, bpc_probability, genopred_probability, pair_summary_probability,
     y_limits = c(0, 1)) {
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
     stop("plot_tiger_prs_methods() requires the ggplot2 package")
@@ -178,11 +178,15 @@ plot_tiger_prs_methods <- function(
   .check_plot_probability_vector(
     genopred_probability, "genopred_probability", n
   )
-  .check_plot_probability_vector(pair_probability, "pair_probability", n)
+  .check_plot_probability_vector(
+    pair_summary_probability, "pair_summary_probability", n
+  )
   method_levels <- c("BPC", "GenoPred", "PAIR (summary)")
   long <- data.frame(
     PRS = rep(prs, 3L),
-    Probability = c(bpc_probability, genopred_probability, pair_probability),
+    Probability = c(
+      bpc_probability, genopred_probability, pair_summary_probability
+    ),
     Method = factor(rep(method_levels, each = n), levels = method_levels)
   )
   long <- long[order(long$Method, long$PRS), , drop = FALSE]

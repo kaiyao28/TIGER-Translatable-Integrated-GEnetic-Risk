@@ -155,9 +155,9 @@ bpc_probability <- function(prs_liability, K, SP, r2_liability) {
 
 # Pain et al. quantile conversion with an optional population-prevalence
 # adaptation. Set corrected = FALSE to return the original SP-based version.
-pain_probability <- function(prs_liability, reference_prs_liability,
-                             r2_observed, K, SP = 0.5,
-                             n_quantiles = 100, corrected = TRUE) {
+genopred_probability <- function(prs_liability, reference_prs_liability,
+                                 r2_observed, K, SP = 0.5,
+                                 n_quantiles = 100, corrected = TRUE) {
   if (!is.numeric(prs_liability) || !length(prs_liability) ||
       any(!is.finite(prs_liability))) stop("prs_liability must be finite numeric")
   if (!is.numeric(reference_prs_liability) ||
@@ -211,10 +211,6 @@ pain_probability <- function(prs_liability, reference_prs_liability,
   bin <- pmin(pmax(bin, 1L), n_quantiles)
   pmin(pmax(p_case[bin], 0), 1)
 }
-
-# Public TIGER name for the Pain et al. quantile conversion. The original
-# pain_probability() entry point is retained for backward compatibility.
-genopred_probability <- pain_probability
 
 # PAIR conversion using supplied case/control PRS moments. population_prevalence
 # reconstructs population PRS moments; SP calibrates the output probability
@@ -296,6 +292,3 @@ pair_probability_sample <- function(
     population_prevalence = K, SP = SP
   )
 }
-
-# Backward-compatible name for TIGER versions before 0.2.0.
-pair_probability <- pair_probability_summary

@@ -87,7 +87,7 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
       prs_sequence, reference_quantiles, plot_r2o,
       plot_K, SP = plot_SP
     ),
-    pair_probability = plot_p_prs
+    pair_summary_probability = plot_p_prs
   )
   ggplot2::ggsave(
     file.path(figure_dir, "prs_method_comparison_v1.png"), method_plot,
