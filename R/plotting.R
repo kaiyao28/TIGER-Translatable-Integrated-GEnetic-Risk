@@ -514,6 +514,10 @@ plot_tiger_apoe_curves <- function(
     K = NULL, SP = 0.5, r2_liability = NULL,
     apoe_update = c("method-specific", "direct"),
     apoe_colours = .tiger_apoe_colours,
+    sample_prs = NULL, sample_probability = NULL,
+    sample_genotype = NULL, sample_group = NULL,
+    group_colours = c("Control" = "#3182BD", "Case" = "#E31A1C"),
+    show_genotype_labels = TRUE, genotype_label_size = 3.1,
     plot_title = "APOE genotype probability distributions",
     plot_subtitle = "APOE is modelled separately from the PRS",
     legend_title = "APOE genotype") {
@@ -560,30 +564,89 @@ plot_tiger_apoe_curves <- function(
       stats::setNames(grDevices::hcl.colors(length(missing_colours), "Dark 3"),
                       missing_colours))
   }
+  sample_inputs <- list(sample_prs, sample_probability,
+                        sample_genotype, sample_group)
+  supplied_samples <- !vapply(sample_inputs, is.null, logical(1))
+  if (any(supplied_samples) && !all(supplied_samples)) {
+    stop("sample_prs, sample_probability, sample_genotype, and sample_group must be supplied together")
+  }
+  show_samples <- all(supplied_samples)
+  if (show_samples) {
+    n_sample <- length(sample_prs)
+    if (!is.numeric(sample_prs) || !n_sample || any(!is.finite(sample_prs))) {
+      stop("sample_prs must contain finite values")
+    }
+    .check_plot_probability_vector(
+      sample_probability, "sample_probability", n_sample
+    )
+    sample_genotype <- as.character(sample_genotype)
+    sample_group <- as.character(sample_group)
+    if (length(sample_genotype) != n_sample || anyNA(sample_genotype) ||
+        any(!sample_genotype %in% genotype_order)) {
+      stop("sample_genotype must contain one known genotype per sample")
+    }
+    if (length(sample_group) != n_sample || anyNA(sample_group) ||
+        any(!nzchar(sample_group))) {
+      stop("sample_group must contain one non-empty group per sample")
+    }
+    missing_groups <- setdiff(unique(sample_group), names(group_colours))
+    if (is.null(names(group_colours)) || length(missing_groups)) {
+      stop("group_colours must provide a named colour for every sample group")
+    }
+    samples <- data.frame(
+      PRS = sample_prs, Probability = sample_probability,
+      Genotype = factor(sample_genotype, levels = genotype_order),
+      Group = factor(sample_group, levels = unique(sample_group))
+    )
+  }
   method_text <- if (is.null(probability_method) ||
                      !nzchar(trimws(probability_method))) "" else
     paste0(": ", trimws(probability_method))
-  ggplot2::ggplot(
-    long,
-    ggplot2::aes(PRS, Probability, colour = Genotype)
-  ) +
+  plot <- ggplot2::ggplot(long, ggplot2::aes(PRS, Probability)) +
     ggplot2::geom_hline(yintercept = 0.5, linetype = "dashed",
-                       colour = "grey75", linewidth = 0.4) +
-    ggplot2::geom_point(
+                       colour = "grey75", linewidth = 0.4)
+  if (show_samples) {
+    plot <- plot + ggplot2::geom_point(
+      data = samples,
+      ggplot2::aes(colour = Group),
+      shape = 21, fill = "white", size = .tiger_prs_point_size,
+      stroke = .tiger_prs_point_stroke, alpha = 0.75
+    ) + ggplot2::scale_colour_manual(values = group_colours)
+    if (isTRUE(show_genotype_labels)) {
+      label_targets <- stats::setNames(
+        seq(0.72, 0.32, length.out = length(genotype_order)), genotype_order
+      )
+      labels <- do.call(rbind, lapply(genotype_order, function(genotype) {
+        curve <- long[long$Genotype == genotype, , drop = FALSE]
+        curve[which.min(abs(curve$Probability - label_targets[[genotype]])), ]
+      }))
+      labels$Label_y <- pmin(y_limits[2] - 0.02,
+                             labels$Probability + 0.055 * diff(y_limits))
+      plot <- plot + ggplot2::geom_label(
+        data = labels,
+        ggplot2::aes(PRS, Label_y, label = Genotype),
+        fill = unname(genotype_colours[as.character(labels$Genotype)]),
+        colour = "white", fontface = "bold", size = genotype_label_size,
+        linewidth = 0.25, label.padding = grid::unit(0.16, "lines"),
+        show.legend = FALSE
+      )
+    }
+  } else {
+    plot <- plot + ggplot2::geom_point(
+      ggplot2::aes(colour = Genotype),
       shape = 21, fill = "white", size = .tiger_prs_point_size,
       stroke = 0.55, alpha = 0.95
-    ) +
-    ggplot2::scale_colour_manual(values = genotype_colours) +
-    ggplot2::guides(
-      colour = ggplot2::guide_legend(
+    ) + ggplot2::scale_colour_manual(values = genotype_colours) +
+      ggplot2::guides(colour = ggplot2::guide_legend(
         nrow = 2, byrow = TRUE,
         override.aes = list(shape = 21, fill = "white", size = 2.5, alpha = 1)
-      )
-    ) +
+      ))
+  }
+  plot +
     ggplot2::coord_cartesian(xlim = range(prs), ylim = y_limits) +
     ggplot2::labs(
       x = "Liability PRS", y = "Estimated disorder probability",
-      colour = legend_title,
+      colour = if (show_samples) "Group" else legend_title,
       title = paste0(plot_title, method_text),
       subtitle = plot_subtitle
     ) +

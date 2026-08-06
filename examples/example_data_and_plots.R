@@ -140,7 +140,12 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
     plot_p_prs,
     apoe_reference,
     probability_method = "PAIR (summary)",
-    K = K, SP = SP, r2_liability = r2_liability
+    K = K, SP = SP, r2_liability = r2_liability,
+    sample_prs = individuals$PRS_liability,
+    sample_probability = individuals$Probability_PRS_HIGH_IMPACT,
+    sample_genotype = individuals$APOE,
+    sample_group = individuals$Group,
+    group_colours = plotted_group_colours
   )
   ggplot2::ggsave(
     file.path(figure_dir, "apoe_genotype_curves_v2.png"), apoe_plot,

@@ -395,6 +395,22 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
     K = 0.01, SP = 0.5, r2_liability = 0.1
   )
   stopifnot(inherits(apoe_curve_plot, "ggplot"))
+  apoe_sample_plot <- plot_tiger_apoe_curves(
+    prs = seq(-4, 4, length.out = 41),
+    probability_prs = pair_probability_summary(
+      seq(-4, 4, length.out = 41), K = 0.1, SP = 0.5,
+      r2_liability = 0.1
+    ),
+    apoe_reference = apoe_reference,
+    K = 0.01, SP = 0.5, r2_liability = 0.1,
+    sample_prs = c(-1, 1), sample_probability = c(0.2, 0.8),
+    sample_genotype = c("e3/e3", "e3/e4"),
+    sample_group = c("Control", "Case")
+  )
+  stopifnot(
+    inherits(apoe_sample_plot, "ggplot"),
+    identical(apoe_sample_plot$labels$colour, "Group")
+  )
   high_impact_curve_plot <- plot_tiger_high_impact_curves(
     prs = seq(-4, 4, length.out = 41),
     probability_prs = pair_probability_summary(

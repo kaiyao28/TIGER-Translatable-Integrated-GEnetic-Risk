@@ -29,8 +29,13 @@ group-colour and optional RV-label arguments directly. Labels are drawn when
 \code{show_rv_labels = FALSE}. The functions return standard \code{ggplot}
 objects for further editing. See \code{docs/PLOTTING.md} and
 \code{R/plotting.R}.
-The APOE functions use a shared warm-to-cool genotype palette and accept a
-named \code{apoe_colours} vector for user-defined shades.
+APOE reference distributions and direct labels use a shared warm-to-cool
+genotype palette and accept a named \code{apoe_colours} vector for user-defined
+shades.
+For \code{plot_tiger_apoe_curves()}, supplying the four \code{sample_*}
+arguments displays individual genotype-specific probabilities as hollow points.
+Their colours represent the sample group, such as blue controls and red cases,
+while direct labels identify the six APOE distributions.
 \code{plot_tiger_high_impact_curves()} applies the same dense hollow-point
 distribution display to a generic mutually exclusive genotype reference,
 including a single 0/1/2 biallelic variant.

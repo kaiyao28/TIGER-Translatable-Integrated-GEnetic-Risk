@@ -7,13 +7,18 @@ TIGER is an R package for converting a liability-scale polygenic risk score
 (RVs) and one separately modelled common high-impact genetic component.
 
 ```text
-Liability-scale PRS  ──┬─> PRS
-                       ├─> PRS + RV
-                       ├─> PRS + common high-impact component
-                       │      ├─ one biallelic variant: 0/1/2 effect alleles
-                       │      └─ APOE: six e2/e3/e4 genotypes
-                       └─> PRS + common high-impact component + RV
+Liability-scale PRS ──> estimated disorder probability
+                         ├─ PRS only
+                         ├─ PRS + RV
+                         ├─ PRS + common high-impact component
+                         │    ├─ one biallelic variant: 0/1/2 effect alleles
+                         │    └─ APOE: six e2/e3/e4 genotypes
+                         └─ PRS + common high-impact component + RV
 ```
+
+Every branch is a probability output. The labels describe which genetic
+components contribute to that probability, rather than different forms of the
+PRS itself.
 
 The high-impact and RV layers are optional. A single variant and APOE are
 alternative uses of the same high-impact layer, not components to add together.
@@ -40,8 +45,9 @@ library(TIGER)
 ```
 
 Core calculations require R 4.1 or later. Optional plotting functions require
-`ggplot2`. The `read_tiger_reference()` helper requires `readxl` when importing
-Excel reference files.
+`ggplot2`, with `ggrepel` used when available to improve RV-label placement.
+The `read_tiger_reference()` helper requires `readxl` when importing Excel
+reference files.
 
 ## 1. Prepare the liability-scale PRS
 
@@ -268,8 +274,8 @@ results_apoe <- tiger_probabilities(
 
 `results_apoe` contains `Probability_PRS` and
 `Probability_PRS_HIGH_IMPACT`. The
-optional `plot_tiger_apoe_curves()` example shows how the same PRS maps to
-the six APOE genotype-specific probabilities.
+optional `plot_tiger_apoe_curves()` example shows the six genotype-specific
+probability distributions, with controls and cases distinguished by colour.
 
 <img src="examples/figures/apoe_genotype_curves_v2.png" alt="APOE genotype-specific probability distributions" width="650">
 

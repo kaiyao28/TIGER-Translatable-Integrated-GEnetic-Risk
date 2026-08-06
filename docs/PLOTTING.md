@@ -11,7 +11,9 @@ same liability-scale PRS values. `plot_tiger_rv_reference()` displays the
 OR-to-intrinsic-probability step used before individual RV updates.
 `plot_tiger_high_impact_curves()` displays genotype-specific curves for a
 generic mutually exclusive reference, including one biallelic 0/1/2 variant.
-`plot_tiger_apoe_curves()` is the six-genotype APOE specialization.
+`plot_tiger_apoe_curves()` is the six-genotype APOE specialization. Its
+optional `sample_*` arguments display genotype-specific observations using
+group colours while retaining direct labels for the six distributions.
 `plot_tiger_high_impact_rv_carrier_points()` provides the corresponding
 genotype-labelled sample distributions and labelled RV-carrier overlay.
 The standalone genotype distributions use closely spaced hollow points rather
@@ -119,11 +121,14 @@ uses one neutral carrier fill and suppresses the unnecessary group legend.
 Do not use group colour to encode damaging versus protective variants. Their
 direction is represented by displacement above or below the baseline curve.
 
-## APOE genotype colours
+## APOE genotype and group colours
 
-The APOE plots use coordinated shades by default. Genotypes containing e4 use
-warm red shades, genotypes containing e2 use cool blue shades, and e3/e3 is
-neutral grey. Both APOE plotting functions accept the same named override:
+The reference-only APOE plot uses coordinated genotype shades by default.
+When sample data are supplied, its hollow points instead use the same group
+colours as the RV plots, such as blue for controls and red for cases. Solid
+direct labels identify all six genotype distributions without requiring a
+second colour legend. Both APOE plotting functions accept the same named
+genotype-colour override:
 
 ```r
 apoe_colours <- c(

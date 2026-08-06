@@ -6,13 +6,14 @@ are synthetic examples; begin with them before substituting study data.
 ## 1. Requirements
 
 - R 4.1 or later;
-- `ggplot2` for figures; and
+- `ggplot2` for figures;
+- `ggrepel` for improved RV-label placement (optional); and
 - `readxl` for the supplied SCZ/AD Excel references.
 
 Install the optional packages once:
 
 ```r
-install.packages(c("ggplot2", "readxl"))
+install.packages(c("ggplot2", "ggrepel", "readxl"))
 ```
 
 The probability calculations otherwise use base R and `stats`.
@@ -63,7 +64,7 @@ Expected result: the scripts print probabilities, create seven figures under
 | RV | Rare variant; separate from APOE |
 | `K` | Population disorder prevalence |
 | `SP` | Sample prevalence, or case proportion, in the target context |
-| `SP_RV` | Disease-probability prior for the RV update; 0.50 gives the balanced-sample calculation and is not RV allele frequency |
+| `rv_prevalence` | Disease-probability prior for the RV update; 0.50 gives the balanced-sample calculation and is not RV allele frequency |
 | `r2_liability` | Variance explained by the PRS on the liability scale |
 | PAIR (summary) | Default example conversion using theoretical moments from `K` and liability-scale R² |
 | APOE status | Optional genotype column with one value per individual |
@@ -188,7 +189,7 @@ Work through this order:
 4. If using RVs, add a delimited RV-status column or mapped logical/0–1 columns
    and prepare a harmonised RV effect reference.
 5. Match any source records by ID before constructing the merged table.
-6. Replace and justify `K`, `SP`, `SP_RV` and liability-scale R².
+6. Replace and justify `K`, `SP`, `rv_prevalence` and liability-scale R².
 7. Call `tiger_probabilities()` and inspect the requested probability columns.
 
 Use [`USAGE.md`](USAGE.md) for the complete code, [`DATA.md`](DATA.md) for file
@@ -218,6 +219,6 @@ Standardise labels before calculation; do not silently drop unmatched records.
 
 ### Implausible probabilities
 
-Stop and recheck PRS scaling, `K`, `SP`, `SP_RV`, R², ancestry, frequencies,
+Stop and recheck PRS scaling, `K`, `SP`, `rv_prevalence`, R², ancestry, frequencies,
 effect direction, overlap and independence assumptions. Do not interpret the
 result clinically until it has been externally validated.

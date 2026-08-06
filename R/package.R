@@ -12,7 +12,7 @@ NULL
 
 utils::globalVariables(c(
   "APOE", "Carrier_group", "Condition", "Display", "Effect", "Genotype",
-  "Intrinsic_probability", "Label_hjust", "Label_y", "Method", "Probability",
+  "Group", "Intrinsic_probability", "Label_hjust", "Label_y", "Method", "Probability",
   "Probability_after",
   "Probability_after_RV", "Probability_before", "PRS", "PRS_group",
   "RV_count_group", "RV_group"

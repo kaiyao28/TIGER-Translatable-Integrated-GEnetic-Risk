@@ -4,8 +4,10 @@ message: Please cite this software and the underlying method publications.
 type: software
 authors:
   - name: TIGER study authors
-version: 0.1.0-dev
+version: 0.1.0.9000
 license: GPL-3.0-or-later
+repository-code: https://github.com/kaiyao28/TIGER-Translatable-Integrated-Genetic-Risk
+url: https://github.com/kaiyao28/TIGER-Translatable-Integrated-Genetic-Risk
 references:
   - type: article
     title: Estimating disorder probability based on polygenic prediction using the BPC approach
