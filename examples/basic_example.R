@@ -1,4 +1,4 @@
-# TIGER framework. GNU GPL v3 or later. See LICENSE.
+# TIGER. GNU GPL v3 or later. See LICENSE.
 # Minimal worked example. Run from the repository root with:
 # Rscript examples/basic_example.R
 

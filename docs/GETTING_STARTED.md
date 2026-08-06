@@ -52,7 +52,7 @@ Rscript examples/example_data_and_plots.R
 Rscript tests/run_tests.R
 ```
 
-Expected result: the scripts print probabilities, create five figures under
+Expected result: the scripts print probabilities, create seven figures under
 `examples/figures/`, and the tests finish with `All tests passed.`
 
 ## 5. Understand the key terms
@@ -63,7 +63,7 @@ Expected result: the scripts print probabilities, create five figures under
 | RV | Rare variant; separate from APOE |
 | `K` | Population disorder prevalence |
 | `SP` | Sample prevalence, or case proportion, in the target context |
-| `SP_RV` | Background level for the RV update; default 0.50 for the balanced sample calculation |
+| `SP_RV` | Disease-probability prior for the RV update; 0.50 gives the balanced-sample calculation and is not RV allele frequency |
 | `r2_liability` | Variance explained by the PRS on the liability scale |
 | PAIR (summary) | Default example conversion using theoretical moments from `K` and liability-scale R² |
 | APOE status | Optional genotype column with one value per individual |
@@ -92,12 +92,14 @@ results_prs[c("ID", "Probability_PRS")]
 ```
 
 Use this first to confirm that the PRS inputs and probability conversion work.
-The optional RV and APOE layers can then be added independently or together.
+The optional RV and common high-impact layers can then be added independently
+or together. APOE is one supported high-impact component.
 
-## 7. Add RV and APOE layers
+## 7. Add RV and a high-impact layer
 
-This self-contained example defines the individual data and both required
-references before calculating all four probability conditions:
+This self-contained example uses APOE as the high-impact component. It defines
+the individual data and both required references before calculating all four
+probability conditions:
 
 ```r
 K <- 0.01
@@ -140,8 +142,8 @@ results_rv <- tiger_probabilities(
 results_apoe <- tiger_probabilities(
   individuals, K = K, SP = SP,
   method = "PAIR (summary)", r2_liability = r2_liability,
-  include_apoe = TRUE, apoe_col = "APOE",
-  apoe_reference = apoe_reference
+  include_high_impact = TRUE, high_impact_col = "APOE",
+  high_impact_reference = apoe_reference
 )
 
 # Full PRS + RV + APOE model
@@ -158,14 +160,14 @@ results <- tiger_probabilities(
   rv_reference = rv_reference,
   rv_status_col = "RV_status",
   rv_prevalence = SP,
-  include_apoe = TRUE,
-  apoe_col = "APOE",
-  apoe_reference = apoe_reference
+  include_high_impact = TRUE,
+  high_impact_col = "APOE",
+  high_impact_reference = apoe_reference
 )
 
 results[c(
   "ID", "Probability_PRS", "Probability_PRS_RV",
-  "Probability_PRS_APOE", "Probability_PRS_APOE_RV"
+  "Probability_PRS_HIGH_IMPACT", "Probability_PRS_HIGH_IMPACT_RV"
 )]
 ```
 

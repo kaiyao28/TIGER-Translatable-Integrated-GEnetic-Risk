@@ -17,11 +17,6 @@
 \alias{prepare_rv_reference}
 \alias{prepare_rv_carrier_matrix}
 \alias{apply_rv_carriers}
-\alias{prepare_high_impact_reference}
-\alias{apoe_genotype_reference}
-\alias{apply_high_impact_probability}
-\alias{high_impact_prevalence_parameters}
-\alias{high_impact_method_probability}
 \alias{harmonise_scz_reference}
 \alias{harmonise_ad_reference}
 \alias{read_tiger_reference}
@@ -30,8 +25,8 @@
 \title{TIGER probability and input functions}
 \description{
 Public functions for preparing liability-scale PRS inputs, estimating absolute
-probabilities, validating APOE or other high-impact references, and applying
-rare-variant carrier effects. Each implementation is available as plain R
+probabilities, preparing input references, and applying rare-variant carrier
+effects. Each implementation is available as plain R
 source in the package's \code{R/} directory.
 }
 \details{

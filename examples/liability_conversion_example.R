@@ -1,4 +1,4 @@
-# TIGER framework. GNU GPL v3 or later. See LICENSE.
+# TIGER. GNU GPL v3 or later. See LICENSE.
 # Minimal observed-to-liability PRS conversion example.
 # Run from the TIGER repository root:
 # Rscript examples/liability_conversion_example.R

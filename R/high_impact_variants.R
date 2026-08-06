@@ -61,6 +61,40 @@ apoe_genotype_reference <- function(case_allele_frequencies,
   ))
 }
 
+# Derive a three-genotype reference for one biallelic common high-impact
+# variant from effect-allele frequencies in cases and controls. HWE is assumed
+# separately within each phenotype group. Prefer observed genotype frequencies
+# with prepare_high_impact_reference() when they are available.
+biallelic_genotype_reference <- function(
+    case_effect_allele_frequency,
+    control_effect_allele_frequency,
+    genotype_labels = c("0", "1", "2")) {
+  check_frequency <- function(x, name) {
+    if (!is.numeric(x) || length(x) != 1L || !is.finite(x) ||
+        x < 0 || x > 1) {
+      stop(name, " must be one finite allele frequency in [0, 1]")
+    }
+  }
+  check_frequency(case_effect_allele_frequency,
+                  "case_effect_allele_frequency")
+  check_frequency(control_effect_allele_frequency,
+                  "control_effect_allele_frequency")
+  if (!is.character(genotype_labels) || length(genotype_labels) != 3L ||
+      anyNA(genotype_labels) || any(!nzchar(genotype_labels)) ||
+      anyDuplicated(genotype_labels)) {
+    stop("genotype_labels must contain three unique non-empty labels for 0, 1 and 2 effect alleles")
+  }
+  hwe <- function(frequency) {
+    c((1 - frequency)^2, 2 * frequency * (1 - frequency), frequency^2)
+  }
+  prepare_high_impact_reference(data.frame(
+    Genotype = genotype_labels,
+    Case_freq = hwe(case_effect_allele_frequency),
+    Control_freq = hwe(control_effect_allele_frequency),
+    stringsAsFactors = FALSE
+  ))
+}
+
 # Update a PRS-derived probability using the case/control likelihood ratio for
 # an observed common high-impact genotype. This is a Bayes update and assumes
 # the separately modelled genotype is not already represented in the PRS.

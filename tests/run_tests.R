@@ -1,10 +1,12 @@
-# TIGER framework. GNU GPL v3 or later. See LICENSE.
-if (requireNamespace("TIGER", quietly = TRUE)) {
-  library(TIGER)
-} else {
+# TIGER. GNU GPL v3 or later. See LICENSE.
+# Use the current checkout during local development and the freshly installed
+# package in R CMD check.
+if (file.exists("R/tiger.R")) {
   source("R/tiger.R")
   loaded_tiger_files <- load_tiger()
   stopifnot(length(loaded_tiger_files) == 7L)
+} else {
+  library(TIGER)
 }
 
 K <- 0.01
@@ -128,6 +130,19 @@ stopifnot(
   abs(sum(apoe_reference$Case_freq) - 1) < 1e-12,
   abs(sum(apoe_reference$Control_freq) - 1) < 1e-12
 )
+single_variant_reference <- biallelic_genotype_reference(0.20, 0.10)
+stopifnot(
+  identical(single_variant_reference$Genotype, c("0", "1", "2")),
+  max(abs(single_variant_reference$Case_freq - c(0.64, 0.32, 0.04))) < 1e-12,
+  max(abs(single_variant_reference$Control_freq - c(0.81, 0.18, 0.01))) < 1e-12,
+  inherits(try(biallelic_genotype_reference(1.2, 0.1), silent = TRUE),
+           "try-error")
+)
+single_variant_updated <- high_impact_method_probability(
+  c(-0.2, 0.1, 0.3), c("0", "1", "2"), single_variant_reference,
+  K = 0.01, SP = 0.5, method = "PAIR (summary)", r2_liability = 0.1
+)
+stopifnot(length(single_variant_updated) == 3L)
 apoe_updated <- apply_high_impact_probability(
   c(0.1, 0.1, 0.1), c("e3/e3", "e3/e4", "e4/e4"), apoe_reference
 )
@@ -262,6 +277,36 @@ stopifnot(
   nrow(attr(workflow, "TIGER_RV_reference")) == 2L,
   nrow(attr(workflow, "TIGER_APOE_reference")) == 6L
 )
+single_variant_merged <- transform(
+  merged, variant_genotype = c("0", "1", "1", "2")
+)
+generic_workflow <- tiger_probabilities(
+  single_variant_merged, K = K, SP = SP, method = "PAIR (summary)",
+  id_col = "participant", prs_col = "score", r2_liability = r2l,
+  include_rv = TRUE, rv_reference = workflow_rv_reference,
+  rv_status_col = "rv_status", rv_prevalence = K,
+  include_high_impact = TRUE, high_impact_col = "variant_genotype",
+  high_impact_reference = single_variant_reference
+)
+manual_single_variant <- high_impact_method_probability(
+  single_variant_merged$score, single_variant_merged$variant_genotype,
+  single_variant_reference, K, SP,
+  method = "PAIR (summary)", r2_liability = r2l
+)
+stopifnot(
+  max(abs(generic_workflow$Probability_PRS_HIGH_IMPACT -
+          manual_single_variant)) < 1e-12,
+  "Probability_PRS_HIGH_IMPACT_RV" %in% names(generic_workflow),
+  nrow(attr(generic_workflow, "TIGER_high_impact_reference")) == 3L,
+  is.null(attr(generic_workflow, "TIGER_APOE_reference")),
+  inherits(try(tiger_probabilities(
+    single_variant_merged, K = K, SP = SP,
+    method = "PAIR (summary)", prs_col = "score", r2_liability = r2l,
+    include_high_impact = TRUE, high_impact_col = "variant_genotype",
+    high_impact_reference = single_variant_reference,
+    include_apoe = TRUE
+  ), silent = TRUE), "try-error")
+)
 wide <- transform(
   merged, carries_damaging = c(0, 1, 0, 1),
   carries_protective = c(0, 0, 1, 1)
@@ -350,6 +395,20 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
     K = 0.01, SP = 0.5, r2_liability = 0.1
   )
   stopifnot(inherits(apoe_curve_plot, "ggplot"))
+  high_impact_curve_plot <- plot_tiger_high_impact_curves(
+    prs = seq(-4, 4, length.out = 41),
+    probability_prs = pair_probability_summary(
+      seq(-4, 4, length.out = 41), K = 0.01, SP = 0.5,
+      r2_liability = 0.1
+    ),
+    high_impact_reference = single_variant_reference,
+    K = 0.01, SP = 0.5, r2_liability = 0.1,
+    genotype_colours = c("0" = "#3182BD", "1" = "#737373", "2" = "#E31A1C")
+  )
+  stopifnot(
+    inherits(high_impact_curve_plot, "ggplot"),
+    identical(high_impact_curve_plot$labels$colour, "Genotype")
+  )
   carrier_point_plot <- plot_tiger_rv_carrier_points(
     prs_curve = seq(-4, 4, length.out = 41),
     probability_curve = pair_probability_summary(
@@ -448,6 +507,29 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
     is.null(grouped_combined_plot$labels$colour),
     identical(grouped_combined_plot$labels$fill, "Carrier group"),
     identical(grouped_combined_plot$labels$shape, "Number of RVs")
+  )
+  generic_combined_plot <- plot_tiger_high_impact_rv_carrier_points(
+    prs_curve = rep(seq(-2, 2, length.out = 10), 3),
+    probability_prs = pair_probability_summary(
+      rep(seq(-2, 2, length.out = 10), 3), K = 0.01, SP = 0.5,
+      r2_liability = 0.1
+    ),
+    prs_group = rep(rep(c("Control", "Case"), each = 5), 3),
+    prs_genotype = rep(c("0", "1", "2"), each = 10),
+    high_impact_reference = single_variant_reference,
+    carrier_prs = c(-1, 0, 1), carrier_genotype = c("0", "1", "2"),
+    carrier_probability_before_rv = c(0.1, 0.5, 0.8),
+    carrier_probability_after_rv = c(0.3, 0.7, 0.9),
+    rv_count = c(1, 1, 2),
+    carrier_group = c("Control", "Case", "Case"),
+    group_colours = c("Control" = "#3182BD", "Case" = "#E31A1C"),
+    rv_labels = c("RV_A", "RV_B", "RV_A; RV_B"),
+    K = 0.01, SP = 0.5, r2_liability = 0.1
+  )
+  stopifnot(
+    inherits(generic_combined_plot, "ggplot"),
+    grepl("High-impact genotype", generic_combined_plot$labels$title),
+    identical(generic_combined_plot$labels$fill, "Carrier group")
   )
 }
 cat("All tests passed.\n")

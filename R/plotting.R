@@ -15,6 +15,7 @@
 .tiger_rv_shapes <- c("No RV" = 22, "1 RV" = 21, "2+ RVs" = 24)
 .tiger_rv_point_alpha <- 1
 .tiger_rv_point_size <- 1.25
+.tiger_prs_point_size <- 1.25
 .tiger_apoe_colours <- c(
   "e4/e4" = "#B2182B", "e3/e4" = "#EF8A62", "e2/e4" = "#F4A582",
   "e3/e3" = "#737373", "e2/e3" = "#67A9CF", "e2/e2" = "#2166AC"
@@ -185,7 +186,10 @@ plot_tiger_prs_methods <- function(
   ggplot2::ggplot(
     long, ggplot2::aes(PRS, Probability, colour = Method, linetype = Method)
   ) +
-    ggplot2::geom_line(linewidth = 1.05) +
+    ggplot2::geom_point(
+      shape = 21, fill = "white", size = .tiger_prs_point_size,
+      stroke = 0.55, alpha = 0.95
+    ) +
     ggplot2::scale_colour_manual(values = c(
       "BPC" = "#D73027", "GenoPred" = "#1A9850",
       "PAIR (summary)" = "#2C7BB6"
@@ -508,7 +512,10 @@ plot_tiger_apoe_curves <- function(
     probability_method = "PAIR (summary)", y_limits = c(0, 1),
     K = NULL, SP = 0.5, r2_liability = NULL,
     apoe_update = c("method-specific", "direct"),
-    apoe_colours = .tiger_apoe_colours) {
+    apoe_colours = .tiger_apoe_colours,
+    plot_title = "APOE genotype probability distributions",
+    plot_subtitle = "APOE is modelled separately from the PRS",
+    legend_title = "APOE genotype") {
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
     stop("plot_tiger_apoe_curves() requires the ggplot2 package")
   }
@@ -518,7 +525,7 @@ plot_tiger_apoe_curves <- function(
   .check_plot_probability_vector(probability_prs, "probability_prs", length(prs))
   apoe_update <- match.arg(apoe_update)
   if (apoe_update == "method-specific" && is.null(K)) {
-    stop("K is required for TIGER's method-specific APOE update")
+    stop("K is required for TIGER's method-specific high-impact update")
   }
   reference <- prepare_high_impact_reference(apoe_reference)
   preferred <- c("e4/e4", "e3/e4", "e2/e4", "e3/e3", "e2/e3", "e2/e2")
@@ -543,7 +550,7 @@ plot_tiger_apoe_curves <- function(
   long$Genotype <- factor(long$Genotype, levels = genotype_order)
   if (is.null(names(apoe_colours)) || anyNA(apoe_colours) ||
       any(!nzchar(apoe_colours))) {
-    stop("apoe_colours must be a named vector of valid colour values")
+    stop("genotype colours must be a named vector of valid colour values")
   }
   genotype_colours <- apoe_colours
   missing_colours <- setdiff(genotype_order, names(apoe_colours))
@@ -552,33 +559,68 @@ plot_tiger_apoe_curves <- function(
       stats::setNames(grDevices::hcl.colors(length(missing_colours), "Dark 3"),
                       missing_colours))
   }
-  genotype_lines <- stats::setNames(rep("solid", length(genotype_order)),
-                                    genotype_order)
-  if ("e3/e3" %in% genotype_order) genotype_lines["e3/e3"] <- "dotted"
   method_text <- if (is.null(probability_method) ||
                      !nzchar(trimws(probability_method))) "" else
     paste0(": ", trimws(probability_method))
   ggplot2::ggplot(
     long,
-    ggplot2::aes(PRS, Probability, colour = Genotype, linetype = Genotype)
+    ggplot2::aes(PRS, Probability, colour = Genotype)
   ) +
     ggplot2::geom_hline(yintercept = 0.5, linetype = "dashed",
                        colour = "grey75", linewidth = 0.4) +
-    ggplot2::geom_line(linewidth = 1.05) +
+    ggplot2::geom_point(
+      shape = 21, fill = "white", size = .tiger_prs_point_size,
+      stroke = 0.55, alpha = 0.95
+    ) +
     ggplot2::scale_colour_manual(values = genotype_colours) +
-    ggplot2::scale_linetype_manual(values = genotype_lines) +
     ggplot2::guides(
-      colour = ggplot2::guide_legend(nrow = 2, byrow = TRUE),
-      linetype = ggplot2::guide_legend(nrow = 2, byrow = TRUE)
+      colour = ggplot2::guide_legend(
+        nrow = 2, byrow = TRUE,
+        override.aes = list(shape = 21, fill = "white", size = 2.5, alpha = 1)
+      )
     ) +
     ggplot2::coord_cartesian(xlim = range(prs), ylim = y_limits) +
     ggplot2::labs(
       x = "Liability PRS", y = "Estimated disorder probability",
-      colour = "APOE genotype", linetype = "APOE genotype",
-      title = paste0("APOE genotype probability curves", method_text),
-      subtitle = "APOE is modelled separately from the PRS"
+      colour = legend_title,
+      title = paste0(plot_title, method_text),
+      subtitle = plot_subtitle
     ) +
     tiger_plot_theme()
+}
+
+# Generic genotype curves for one common high-impact variant or another
+# mutually exclusive genotype reference. This delegates to the same plotting
+# and probability logic as the APOE-specific convenience function.
+plot_tiger_high_impact_curves <- function(
+    prs, probability_prs, high_impact_reference,
+    probability_method = "PAIR (summary)", y_limits = c(0, 1),
+    K = NULL, SP = 0.5, r2_liability = NULL,
+    high_impact_update = c("method-specific", "direct"),
+    genotype_colours = NULL,
+    plot_title = "Common high-impact genotype probability distributions") {
+  reference <- prepare_high_impact_reference(high_impact_reference)
+  if (is.null(genotype_colours)) {
+    genotype_colours <- stats::setNames(
+      grDevices::hcl.colors(nrow(reference), "Dark 3"), reference$Genotype
+    )
+  }
+  plot_tiger_apoe_curves(
+    prs = prs, probability_prs = probability_prs,
+    apoe_reference = reference,
+    probability_method = probability_method, y_limits = y_limits,
+    K = K, SP = SP, r2_liability = r2_liability,
+    apoe_update = match.arg(high_impact_update),
+    apoe_colours = genotype_colours,
+    plot_title = plot_title,
+    plot_subtitle = "The high-impact component is modelled separately from the PRS",
+    legend_title = "Genotype"
+  ) + ggplot2::guides(
+    colour = ggplot2::guide_legend(
+      nrow = 1, byrow = TRUE,
+      override.aes = list(shape = 21, fill = "white", size = 2.5, alpha = 1)
+    )
+  )
 }
 
 # Instructional/observed RV-carrier overlay. Optional prs_group values draw
@@ -590,7 +632,8 @@ plot_tiger_rv_carrier_points <- function(
     rv_count, prs_group = NULL, carrier_group = NULL, group_colours = NULL,
     show_rv_labels = TRUE, rv_labels = NULL,
     probability_method = "PAIR (summary)", y_limits = c(0, 1),
-    show_prs_points = TRUE, prs_point_size = 1.5, prs_point_alpha = 0.80,
+    show_prs_points = TRUE, prs_point_size = .tiger_prs_point_size,
+    prs_point_alpha = 0.80,
     show_shift_segments = FALSE, rv_point_size = 2.6,
     rv_point_alpha = .tiger_rv_point_alpha,
     rv_point_border = "grey15", rv_point_stroke = 0.55,
@@ -776,10 +819,16 @@ plot_tiger_apoe_rv_carrier_points <- function(
     K = NULL, SP = 0.5, r2_liability = NULL,
     apoe_update = c("method-specific", "direct"),
     apoe_colours = .tiger_apoe_colours,
-    show_prs_points = TRUE, prs_point_size = 1.2, prs_point_alpha = 0.65,
+    show_prs_points = TRUE, prs_point_size = .tiger_prs_point_size,
+    prs_point_alpha = 0.65,
     rv_point_size = 2.1, rv_point_alpha = .tiger_rv_point_alpha,
     rv_point_border = "grey25", rv_point_stroke = 0.35,
-    rv_shapes = .tiger_rv_shapes[c("1 RV", "2+ RVs")]) {
+    rv_shapes = .tiger_rv_shapes[c("1 RV", "2+ RVs")],
+    grouped_title = "APOE distributions with RV carriers",
+    grouped_subtitle = "Hollow circles: PRS + APOE; solid points: PRS + APOE + RV",
+    curve_title = "APOE curves with RV carriers",
+    curve_subtitle = "Curves: PRS + APOE; points: PRS + APOE + RV (carriers only)",
+    genotype_legend_title = "APOE genotype") {
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
     stop("plot_tiger_apoe_rv_carrier_points() requires the ggplot2 package")
   }
@@ -990,8 +1039,8 @@ plot_tiger_apoe_rv_carrier_points <- function(
         x = "Liability PRS", y = "Estimated disorder probability",
         colour = NULL, fill = "Carrier group",
         shape = "Number of RVs",
-        title = paste0("APOE distributions with RV carriers", method_text),
-        subtitle = "Hollow circles: PRS + APOE; solid points: PRS + APOE + RV"
+        title = paste0(grouped_title, method_text),
+        subtitle = grouped_subtitle
       ) +
       tiger_plot_theme()
     if (isTRUE(show_rv_labels) && !is.null(rv_labels)) {
@@ -1031,15 +1080,70 @@ plot_tiger_apoe_rv_carrier_points <- function(
     ) +
     ggplot2::labs(
       x = "Liability PRS", y = "Estimated disorder probability",
-      colour = "APOE genotype", linetype = "APOE genotype",
+      colour = genotype_legend_title, linetype = genotype_legend_title,
       fill = if (groups$show_legend) "Carrier group" else NULL,
       shape = "Number of RVs",
-      title = paste0("APOE curves with RV carriers", method_text),
-      subtitle = "Curves: PRS + APOE; points: PRS + APOE + RV (carriers only)"
+      title = paste0(curve_title, method_text),
+      subtitle = curve_subtitle
     ) +
     tiger_plot_theme()
   if (isTRUE(show_rv_labels) && !is.null(rv_labels)) {
     plot <- .add_tiger_rv_labels(plot, carriers, "Probability_after_RV")
   }
   plot
+}
+
+# Generic high-impact genotype + RV plot. The point and probability logic is
+# identical to the APOE-specific plot, while public argument names and labels
+# apply to one biallelic 0/1/2 variant or another mutually exclusive reference.
+plot_tiger_high_impact_rv_carrier_points <- function(
+    prs_curve, probability_prs, high_impact_reference,
+    carrier_prs, carrier_genotype,
+    carrier_probability_before_rv, carrier_probability_after_rv,
+    rv_count, prs_group = NULL, prs_genotype = NULL,
+    carrier_group = NULL, group_colours = NULL,
+    show_rv_labels = TRUE, rv_labels = NULL,
+    probability_method = "PAIR (summary)", y_limits = c(0, 1),
+    K = NULL, SP = 0.5, r2_liability = NULL,
+    high_impact_update = c("method-specific", "direct"),
+    genotype_colours = NULL,
+    show_prs_points = TRUE, prs_point_size = .tiger_prs_point_size,
+    prs_point_alpha = 0.65,
+    rv_point_size = 2.1, rv_point_alpha = .tiger_rv_point_alpha,
+    rv_point_border = "grey25", rv_point_stroke = 0.35,
+    rv_shapes = .tiger_rv_shapes[c("1 RV", "2+ RVs")]) {
+  reference <- prepare_high_impact_reference(high_impact_reference)
+  if (is.null(genotype_colours)) {
+    genotype_colours <- stats::setNames(
+      grDevices::hcl.colors(nrow(reference), "Dark 3"), reference$Genotype
+    )
+  }
+  plot_tiger_apoe_rv_carrier_points(
+    prs_curve = prs_curve, probability_prs = probability_prs,
+    apoe_reference = reference,
+    carrier_prs = carrier_prs, carrier_apoe = carrier_genotype,
+    carrier_probability_before_rv = carrier_probability_before_rv,
+    carrier_probability_after_rv = carrier_probability_after_rv,
+    rv_count = rv_count, prs_group = prs_group, prs_apoe = prs_genotype,
+    carrier_group = carrier_group, group_colours = group_colours,
+    show_rv_labels = show_rv_labels, rv_labels = rv_labels,
+    probability_method = probability_method, y_limits = y_limits,
+    K = K, SP = SP, r2_liability = r2_liability,
+    apoe_update = match.arg(high_impact_update), apoe_colours = genotype_colours,
+    show_prs_points = show_prs_points, prs_point_size = prs_point_size,
+    prs_point_alpha = prs_point_alpha, rv_point_size = rv_point_size,
+    rv_point_alpha = rv_point_alpha, rv_point_border = rv_point_border,
+    rv_point_stroke = rv_point_stroke, rv_shapes = rv_shapes,
+    grouped_title = "High-impact genotype distributions with RV carriers",
+    grouped_subtitle = paste0(
+      "Hollow circles: PRS + high-impact genotype; solid points: ",
+      "PRS + high-impact genotype + RV"
+    ),
+    curve_title = "High-impact genotype curves with RV carriers",
+    curve_subtitle = paste0(
+      "Curves: PRS + high-impact genotype; points: ",
+      "PRS + high-impact genotype + RV (carriers only)"
+    ),
+    genotype_legend_title = "Genotype"
+  )
 }

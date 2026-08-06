@@ -9,6 +9,17 @@ produce the values; plotting helpers only reshape and display supplied results.
 `plot_tiger_prs_methods()` compares BPC, GenoPred, and PAIR (summary) on the
 same liability-scale PRS values. `plot_tiger_rv_reference()` displays the
 OR-to-intrinsic-probability step used before individual RV updates.
+`plot_tiger_high_impact_curves()` displays genotype-specific curves for a
+generic mutually exclusive reference, including one biallelic 0/1/2 variant.
+`plot_tiger_apoe_curves()` is the six-genotype APOE specialization.
+`plot_tiger_high_impact_rv_carrier_points()` provides the corresponding
+genotype-labelled sample distributions and labelled RV-carrier overlay.
+The standalone genotype distributions use closely spaced hollow points rather
+than solid lines, matching the visual language of the combined genotype and RV
+figures. Supply a dense ordered PRS sequence for a smooth appearance.
+Hollow PRS and genotype-distribution points consistently default to size
+`1.25`. Their opacity remains plot-specific so dense panels stay legible.
+Solid RV-carrier points are intentionally larger and fully opaque by default.
 
 ## RV-carrier points
 
@@ -37,15 +48,15 @@ The principal settings are:
 
 | Argument | Default | Purpose |
 | --- | --- | --- |
-| `rv_point_size` | `1.25` or `2.6`, depending on the plot | Point size |
+| `rv_point_size` | Plot-specific | Size of solid RV-carrier points |
 | `rv_point_alpha` | `1` | Point opacity from 0 to 1 |
 | `rv_point_border` | `"grey15"` or `"grey25"`, depending on the plot | Point-outline colour |
 | `rv_point_stroke` | plot-specific | Point-outline width |
 | `rv_shapes` | circle and triangle | Shapes for one and multiple RVs |
 | `prs_group` | `NULL` | Optional group label for each PRS observation |
 | `show_prs_points` | `TRUE` | Show unconnected hollow PRS observations by group |
-| `prs_point_size` | `1.5` | Size of hollow PRS-only group observations |
-| `prs_point_alpha` | `0.80` | Opacity of hollow PRS-only group observations |
+| `prs_point_size` | `1.25` | Size of hollow PRS-only group observations |
+| `prs_point_alpha` | `0.80` in the general RV plot; `0.65` in denser genotype plots | Opacity of hollow PRS-only group observations |
 | `carrier_group` | `NULL` | Optional external group for point colour |
 | `group_colours` | automatic | Named colours for external groups |
 | `show_rv_labels` | `TRUE` | Display supplied RV labels |

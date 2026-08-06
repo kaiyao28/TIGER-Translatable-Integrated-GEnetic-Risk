@@ -1,4 +1,4 @@
-# TIGER framework. GNU GPL v3 or later. See LICENSE.
+# TIGER. GNU GPL v3 or later. See LICENSE.
 # Simulation-free example using supplied synthetic input tables.
 # Run from the TIGER repository root:
 # Rscript examples/example_data_and_plots.R
@@ -49,14 +49,14 @@ individuals <- tiger_probabilities(
   r2_liability = r2_liability,
   include_rv = TRUE, rv_reference = rv_reference,
   rv_status_col = "RV_status", rv_prevalence = SP_RV,
-  include_apoe = TRUE, apoe_col = "APOE",
-  apoe_reference = apoe_reference
+  include_high_impact = TRUE, high_impact_col = "APOE",
+  high_impact_reference = apoe_reference
 )
 
 example_output <- individuals[, c(
   "ID", "PRS_liability", "APOE", "RV_count", "Probability_PRS",
-  "Probability_PRS_RV", "Probability_PRS_APOE",
-  "Probability_PRS_APOE_RV"
+  "Probability_PRS_RV", "Probability_PRS_HIGH_IMPACT",
+  "Probability_PRS_HIGH_IMPACT_RV"
 )]
 print(utils::head(example_output, 12))
 message("Calculated probabilities for ", nrow(example_output),
@@ -67,7 +67,7 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
   dir.create(figure_dir, recursive = TRUE, showWarnings = FALSE)
 
   # A dense PRS sequence is retained for the genotype-specific APOE curves.
-  prs_sequence <- seq(-4, 4, by = 0.05)
+  prs_sequence <- seq(-4, 4, length.out = 321)
   plot_K <- 0.01
   plot_SP <- 0.50
   plot_r2l <- 0.10
@@ -147,6 +147,68 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
     width = 7.5, height = 5.2, dpi = 160
   )
 
+  single_variant_reference <- biallelic_genotype_reference(
+    case_effect_allele_frequency = 0.20,
+    control_effect_allele_frequency = 0.10
+  )
+  single_variant_plot <- plot_tiger_high_impact_curves(
+    prs_sequence,
+    plot_p_prs,
+    single_variant_reference,
+    probability_method = "PAIR (summary)",
+    K = K, SP = SP, r2_liability = r2_liability,
+    genotype_colours = c("0" = "#3182BD", "1" = "#737373", "2" = "#E31A1C"),
+    plot_title = "Single common high-impact variant"
+  )
+  ggplot2::ggsave(
+    file.path(figure_dir, "single_high_impact_variant_curves_v1.png"),
+    single_variant_plot, width = 7.5, height = 5.2, dpi = 160
+  )
+
+  # Three genotype-specific sample distributions with the same labelled RV
+  # overlay used in the six-genotype APOE figure.
+  single_variant_individuals <- individuals
+  single_variant_individuals$Variant_genotype <- rep(
+    c("0", "1", "2"), each = nrow(single_variant_individuals) / 3
+  )
+  single_variant_individuals <- tiger_probabilities(
+    single_variant_individuals,
+    K = K, SP = SP, method = "PAIR (summary)",
+    r2_liability = r2_liability,
+    include_rv = TRUE, rv_reference = rv_reference,
+    rv_status_col = "RV_status", rv_prevalence = SP_RV,
+    include_high_impact = TRUE,
+    high_impact_col = "Variant_genotype",
+    high_impact_reference = single_variant_reference
+  )
+  single_variant_rv_plot <- plot_tiger_high_impact_rv_carrier_points(
+    prs_curve = single_variant_individuals$PRS_liability,
+    probability_prs = single_variant_individuals$Probability_PRS,
+    high_impact_reference = single_variant_reference,
+    carrier_prs = single_variant_individuals$PRS_liability[carrier_index],
+    carrier_genotype =
+      single_variant_individuals$Variant_genotype[carrier_index],
+    carrier_probability_before_rv =
+      single_variant_individuals$Probability_PRS_HIGH_IMPACT[carrier_index],
+    carrier_probability_after_rv =
+      single_variant_individuals$Probability_PRS_HIGH_IMPACT_RV[carrier_index],
+    rv_count = single_variant_individuals$RV_count[carrier_index],
+    prs_group = single_variant_individuals$Group,
+    prs_genotype = single_variant_individuals$Variant_genotype,
+    carrier_group = single_variant_individuals$Group[carrier_index],
+    group_colours = plotted_group_colours,
+    rv_labels = plotted_rv_labels,
+    probability_method = "PAIR (summary)",
+    K = K, SP = SP, r2_liability = r2_liability,
+    genotype_colours = c("0" = "#3182BD", "1" = "#737373", "2" = "#E31A1C")
+  )
+  ggplot2::ggsave(
+    file.path(
+      figure_dir, "single_high_impact_variant_rv_carrier_points_v1.png"
+    ),
+    single_variant_rv_plot, width = 11.5, height = 7.2, dpi = 160
+  )
+
   apoe_rv_plot <- plot_tiger_apoe_rv_carrier_points(
     prs_curve = individuals$PRS_liability,
     probability_prs = individuals$Probability_PRS,
@@ -154,9 +216,9 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
     carrier_prs = individuals$PRS_liability[carrier_index],
     carrier_apoe = individuals$APOE[carrier_index],
     carrier_probability_before_rv =
-      individuals$Probability_PRS_APOE[carrier_index],
+      individuals$Probability_PRS_HIGH_IMPACT[carrier_index],
     carrier_probability_after_rv =
-      individuals$Probability_PRS_APOE_RV[carrier_index],
+      individuals$Probability_PRS_HIGH_IMPACT_RV[carrier_index],
     rv_count = individuals$RV_count[carrier_index],
     prs_group = plotted_prs_group,
     prs_apoe = individuals$APOE,

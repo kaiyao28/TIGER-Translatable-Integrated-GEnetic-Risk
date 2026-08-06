@@ -125,6 +125,8 @@ tiger_probabilities <- function(
     include_rv = FALSE, rv_reference = NULL,
     rv_columns = NULL, rv_status_col = NULL,
     rv_delimiter = "[;,|]", rv_prevalence = 0.5,
+    include_high_impact = FALSE, high_impact_col = NULL,
+    high_impact_reference = NULL,
     include_apoe = FALSE, apoe_col = "APOE", apoe_reference = NULL) {
   if (!is.data.frame(data) || !nrow(data)) {
     stop("data must be a non-empty data.frame")
@@ -136,6 +138,22 @@ tiger_probabilities <- function(
   if (!is.logical(include_apoe) || length(include_apoe) != 1L ||
       is.na(include_apoe)) {
     stop("include_apoe must be TRUE or FALSE")
+  }
+  if (!is.logical(include_high_impact) || length(include_high_impact) != 1L ||
+      is.na(include_high_impact)) {
+    stop("include_high_impact must be TRUE or FALSE")
+  }
+  if (isTRUE(include_high_impact) && isTRUE(include_apoe)) {
+    stop("use either include_high_impact or include_apoe, not both")
+  }
+  if (isTRUE(include_high_impact)) {
+    if (is.null(high_impact_col) || !is.character(high_impact_col) ||
+        length(high_impact_col) != 1L || !nzchar(high_impact_col)) {
+      stop("high_impact_col is required when include_high_impact = TRUE")
+    }
+    if (is.null(high_impact_reference)) {
+      stop("high_impact_reference is required when include_high_impact = TRUE")
+    }
   }
   id_col <- .tiger_column(data, id_col, "id_col")
   prs_col <- .tiger_column(data, prs_col, "prs_col")
@@ -178,32 +196,52 @@ tiger_probabilities <- function(
     output$Probability_PRS_RV <- rv$probability_after
   }
 
-  if (isTRUE(include_apoe)) {
-    apoe_col <- .tiger_column(data, apoe_col, "apoe_col")
-    if (is.null(apoe_reference)) {
-      apoe_reference <- tiger_default_apoe_reference()
+  include_any_high_impact <- isTRUE(include_high_impact) || isTRUE(include_apoe)
+  used_high_impact_reference <- NULL
+  if (include_any_high_impact) {
+    impact_col <- if (isTRUE(include_high_impact)) high_impact_col else apoe_col
+    impact_col <- .tiger_column(
+      data, impact_col,
+      if (isTRUE(include_high_impact)) "high_impact_col" else "apoe_col"
+    )
+    impact_reference <- if (isTRUE(include_high_impact)) {
+      prepare_high_impact_reference(high_impact_reference)
+    } else if (is.null(apoe_reference)) {
+      reference <- tiger_default_apoe_reference()
       message(
         "Using TIGER's bundled APOE reference. Supply apoe_reference to ",
         "use population- and phenotype-matched frequencies."
       )
+      reference
     } else {
-      apoe_reference <- prepare_high_impact_reference(apoe_reference)
+      prepare_high_impact_reference(apoe_reference)
     }
-    p_apoe <- high_impact_method_probability(
-      prs, data[[apoe_col]], apoe_reference, K = K, SP = SP,
+    used_high_impact_reference <- impact_reference
+    p_high_impact <- high_impact_method_probability(
+      prs, data[[impact_col]], impact_reference, K = K, SP = SP,
       method = method, r2_liability = r2_liability,
       reference_prs_liability = reference_prs_liability,
       r2_observed = r2_observed, case_mean = case_mean, case_sd = case_sd,
       control_mean = control_mean, control_sd = control_sd,
       n_quantiles = n_quantiles
     )
-    output$Probability_PRS_APOE <- p_apoe
+    high_impact_probability_name <- if (isTRUE(include_high_impact)) {
+      "Probability_PRS_HIGH_IMPACT"
+    } else {
+      "Probability_PRS_APOE"
+    }
+    output[[high_impact_probability_name]] <- p_high_impact
     if (isTRUE(include_rv)) {
       combined <- apply_rv_carriers(
-        stats::setNames(p_apoe, ids), carrier_matrix, odds_ratios,
+        stats::setNames(p_high_impact, ids), carrier_matrix, odds_ratios,
         prevalence = rv_prevalence
       )
-      output$Probability_PRS_APOE_RV <- combined$probability_after
+      combined_probability_name <- if (isTRUE(include_high_impact)) {
+        "Probability_PRS_HIGH_IMPACT_RV"
+      } else {
+        "Probability_PRS_APOE_RV"
+      }
+      output[[combined_probability_name]] <- combined$probability_after
     }
   }
   attr(output, "TIGER_method") <- method
@@ -211,7 +249,9 @@ tiger_probabilities <- function(
     rv_reference
   } else NULL
   attr(output, "TIGER_APOE_reference") <- if (isTRUE(include_apoe)) {
-    apoe_reference
+    used_high_impact_reference
   } else NULL
+  attr(output, "TIGER_high_impact_reference") <-
+    if (isTRUE(include_high_impact)) used_high_impact_reference else NULL
   output
 }

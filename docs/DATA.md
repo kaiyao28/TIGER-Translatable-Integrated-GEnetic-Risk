@@ -59,6 +59,11 @@ frequencies are preferred. `apoe_genotype_reference()` can derive the six
 genotype frequencies from named e2/e3/e4 case and control allele frequencies,
 but this makes a Hardy-Weinberg equilibrium assumption. See
 [`AD_APOE_GUIDE.md`](AD_APOE_GUIDE.md) for application and PRS-overlap guidance.
+For one biallelic common high-impact variant, use observed frequencies for the
+0-, 1-, and 2-effect-allele genotypes when available.
+`biallelic_genotype_reference()` can derive them from separate case and control
+effect-allele frequencies under HWE. See
+[`HIGH_IMPACT_VARIANTS.md`](HIGH_IMPACT_VARIANTS.md).
 
 ## Lower-level separate APOE-status schema
 
@@ -85,11 +90,14 @@ and RV status from one table. One row must represent one unique individual.
 | `ID` | Unique individual identifier |
 | `PRS_liability` | Finite liability-scale PRS |
 | `Group` (optional) | Group retained unchanged for analysis or plotting |
+| `High_impact` (optional) | Genotype for one separately modelled common high-impact component, such as 0/1/2 effect alleles |
 | `APOE` (optional) | Genotype matching the high-impact reference |
 | `RV_status` (optional) | Delimited list of IDs matching the RV reference |
 
-All names can be configured through `id_col`, `prs_col`, `group_col`,
-`apoe_col`, and `rv_status_col`. Instead of `RV_status`, `rv_columns` can map
+`High_impact` and `APOE` illustrate alternative uses of one high-impact layer;
+do not add both in the same calculation. All names can be configured through
+`id_col`, `prs_col`, `group_col`, `apoe_col` or `high_impact_col`, and
+`rv_status_col`. Instead of `RV_status`, `rv_columns` can map
 RV-reference IDs to separate logical or 0/1 columns. An empty status means no
 carried RV. Unknown RV IDs and unknown APOE genotypes produce errors.
 

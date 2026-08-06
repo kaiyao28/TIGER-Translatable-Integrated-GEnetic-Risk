@@ -74,12 +74,20 @@ and a justified quantile specification.
 prevalence and sample-prevalence values from case/control genotype frequencies.
 `high_impact_method_probability()` then recalculates BPC, GenoPred, PAIR
 (summary), or PAIR (sample) using those values. This is the canonical TIGER
-high-impact-variant update.
+high-impact-variant update. The main `tiger_probabilities()` interface exposes
+this through `include_high_impact`, `high_impact_col`, and
+`high_impact_reference`. Before using this route, users must remove the
+separately modelled variant and an appropriate LD-aware region from PRS
+construction and R² estimation, then document the excluded interval or variant
+set. TIGER cannot verify this preprocessing step from a probability input table.
 `apply_high_impact_probability()` remains available as a lower-level direct
 likelihood-ratio update when that alternative model is explicitly intended.
 `apoe_genotype_reference()` supports APOE allele frequencies under an explicit
-HWE assumption; observed genotype frequencies are preferred. See
-[`AD_APOE_GUIDE.md`](AD_APOE_GUIDE.md).
+HWE assumption. `biallelic_genotype_reference()` provides the corresponding
+0/1/2-effect-allele reference for one biallelic common high-impact variant.
+Observed genotype frequencies are preferred. See
+[`AD_APOE_GUIDE.md`](AD_APOE_GUIDE.md) and
+[`HIGH_IMPACT_VARIANTS.md`](HIGH_IMPACT_VARIANTS.md).
 
 ## Rare variants
 

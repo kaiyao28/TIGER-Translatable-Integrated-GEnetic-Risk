@@ -65,8 +65,8 @@ results <- tiger_probabilities(
   group_col = "Group", r2_liability = r2_liability,
   include_rv = TRUE, rv_reference = rv_reference,
   rv_status_col = "RV_status", rv_prevalence = 0.50,
-  include_apoe = TRUE, apoe_col = "APOE",
-  apoe_reference = apoe_reference
+  include_high_impact = TRUE, high_impact_col = "APOE",
+  high_impact_reference = apoe_reference
 )
 ```
 
@@ -93,13 +93,14 @@ and output rows remain aligned to their input IDs.
 |---|---|
 | neither | `Probability_PRS` |
 | RV | `Probability_PRS`, `Probability_PRS_RV` |
-| APOE | `Probability_PRS`, `Probability_PRS_APOE` |
-| RV and APOE | all four conditions, including `Probability_PRS_APOE_RV` |
+| High-impact component | `Probability_PRS`, `Probability_PRS_HIGH_IMPACT` |
+| RV and high-impact component | all four conditions, including `Probability_PRS_HIGH_IMPACT_RV` |
 
 Both optional layers default to off. `rv_reference` is mandatory when
-`include_rv = TRUE`. When `include_apoe = TRUE`, supply a matched
-`apoe_reference`. Omitting it uses `tiger_default_apoe_reference()` with a
-visible message so the assumption is not hidden.
+`include_rv = TRUE`. When `include_high_impact = TRUE`, supply the genotype
+column and a matched reference. Beforehand, exclude the separately modelled
+variant and a justified LD-aware region from PRS construction and R² estimation.
+The older `include_apoe` arguments remain available for compatibility.
 
 ## 3. Lower-level, separate-record workflow
 
