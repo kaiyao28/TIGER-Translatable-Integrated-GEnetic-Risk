@@ -18,7 +18,8 @@ The standalone genotype distributions use closely spaced hollow points rather
 than solid lines, matching the visual language of the combined genotype and RV
 figures. Supply a dense ordered PRS sequence for a smooth appearance.
 Hollow PRS and genotype-distribution points consistently default to size
-`1.25`. Their opacity remains plot-specific so dense panels stay legible.
+`1.25` and stroke `0.65`. Their opacity remains plot-specific so dense panels
+stay legible.
 Solid RV-carrier points are intentionally larger and fully opaque by default.
 
 ## RV-carrier points
@@ -142,7 +143,24 @@ genotype. Circle colour identifies their optional group, such as case or
 control. Solid points show RV-adjusted probabilities and retain the same group
 colour, while shape distinguishes one from multiple RVs. The six genotype
 distributions are labelled directly near their midpoints, using the consistent
-`apoe_colours` palette, rather than adding another set of coloured lines.
+`apoe_colours` palette, rather than adding another set of coloured lines. Each
+genotype label is placed above its reference point and uses a solid
+genotype-coloured background so it remains distinct from the hollow sample
+points.
+
+For a crowded panel, labels can be hidden or resized without changing the
+probability or point layers:
+
+```r
+plot_tiger_apoe_rv_carrier_points(
+  # required probability arguments omitted here
+  show_genotype_labels = TRUE,
+  genotype_label_size = 3.1
+)
+```
+
+Set `show_genotype_labels = FALSE` when genotype names are already supplied in
+the caption or a separate key.
 
 ## Standard ggplot2 editing
 

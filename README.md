@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/tiger-readme-header-v4.png" alt="TIGER — Translatable Integrated GEnetic Risk" width="100%">
+  <img src="docs/assets/tiger-readme-header-final.png" alt="TIGER — Translatable Integrated GEnetic Risk" width="100%">
 </p>
 
 TIGER is an R package for converting a liability-scale polygenic risk score
@@ -337,8 +337,9 @@ separate risk/protective colour.
 
 The helpers used above return ordinary `ggplot` objects, so users may modify
 them or plot the returned TIGER probability columns independently. Hollow
-distribution points share a default size of `1.25`; point size, opacity,
-colours, borders, labels, and shapes remain editable through function arguments.
+distribution points share a default size of `1.25` and outline width of
+`0.65`. Point size, opacity, colours, borders, labels, and shapes remain
+editable through function arguments.
 
 ## Run the examples
 

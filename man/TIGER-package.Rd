@@ -8,9 +8,12 @@ separately modelled common high-impact variants, and rare-variant carrier
 effects.
 }
 \details{
-The source remains directly reviewable in the package's \code{R/} directory.
-See the repository README and docs/GETTING_STARTED.md for the required modelling
-decisions and input preparation. The installed quick guide is returned by
-\code{system.file("doc", "getting-started.md", package = "TIGER")}.
+The implementations remain directly reviewable in the repository's \code{R/}
+directory at \url{https://github.com/Mengyin1223/TIGER}. See the repository
+README and guides for input preparation and modelling decisions. The installed
+quick guide is returned by
+\code{system.file("doc", "getting-started.md", package = "TIGER")}. See
+\code{\link{tiger_probabilities}}, \code{TIGER-high-impact}, and
+\code{TIGER-plots} for the main interfaces.
 }
 \docType{package}

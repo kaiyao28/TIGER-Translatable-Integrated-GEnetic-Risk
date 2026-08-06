@@ -11,5 +11,6 @@ renv/staging/
 *.pdf
 !examples/figures/*.png
 !docs/assets/*.png
+docs/assets/*-candidate.png
 !inst/extdata/reference/SCZ/*.xlsx
 !inst/extdata/reference/AD/*.xlsx

@@ -16,6 +16,7 @@
 .tiger_rv_point_alpha <- 1
 .tiger_rv_point_size <- 1.25
 .tiger_prs_point_size <- 1.25
+.tiger_prs_point_stroke <- 0.65
 .tiger_apoe_colours <- c(
   "e4/e4" = "#B2182B", "e3/e4" = "#EF8A62", "e2/e4" = "#F4A582",
   "e3/e3" = "#737373", "e2/e3" = "#67A9CF", "e2/e2" = "#2166AC"
@@ -732,7 +733,7 @@ plot_tiger_rv_carrier_points <- function(
     if (isTRUE(show_prs_points)) {
       plot <- plot + ggplot2::geom_point(
         ggplot2::aes(colour = PRS_group),
-        shape = 21, fill = NA, stroke = 0.65,
+        shape = 21, fill = NA, stroke = .tiger_prs_point_stroke,
         size = prs_point_size, alpha = prs_point_alpha
       )
     }
@@ -819,6 +820,7 @@ plot_tiger_apoe_rv_carrier_points <- function(
     K = NULL, SP = 0.5, r2_liability = NULL,
     apoe_update = c("method-specific", "direct"),
     apoe_colours = .tiger_apoe_colours,
+    show_genotype_labels = TRUE, genotype_label_size = 3.1,
     show_prs_points = TRUE, prs_point_size = .tiger_prs_point_size,
     prs_point_alpha = 0.65,
     rv_point_size = 2.1, rv_point_alpha = .tiger_rv_point_alpha,
@@ -844,6 +846,14 @@ plot_tiger_apoe_rv_carrier_points <- function(
     stop("K is required for TIGER's method-specific APOE update")
   }
   reference <- prepare_high_impact_reference(apoe_reference)
+  if (!is.logical(show_genotype_labels) || length(show_genotype_labels) != 1L ||
+      is.na(show_genotype_labels)) {
+    stop("show_genotype_labels must be TRUE or FALSE")
+  }
+  if (!is.numeric(genotype_label_size) || length(genotype_label_size) != 1L ||
+      !is.finite(genotype_label_size) || genotype_label_size <= 0) {
+    stop("genotype_label_size must be one positive finite value")
+  }
   grouped_points <- !is.null(prs_group)
   if (grouped_points) {
     prs_group <- as.character(prs_group)
@@ -991,21 +1001,30 @@ plot_tiger_apoe_rv_carrier_points <- function(
         , drop = FALSE
       ]
     }))
-    plot <- ggplot2::ggplot(curves, ggplot2::aes(PRS, Probability)) +
-      ggplot2::geom_label(
-        data = genotype_labels,
-        ggplot2::aes(x = PRS, y = Probability,
-                     colour = Genotype, label = Genotype),
-        inherit.aes = FALSE, fill = "white", linewidth = 0.2,
-        size = 3.1, fontface = "bold", show.legend = FALSE
-      )
+    probability_span <- diff(y_limits)
+    genotype_labels$Label_y <- pmin(
+      y_limits[2] - 0.02 * probability_span,
+      genotype_labels$Probability + 0.055 * probability_span
+    )
+    genotype_label_fills <- unname(
+      genotype_colours[as.character(genotype_labels$Genotype)]
+    )
+    plot <- ggplot2::ggplot(curves, ggplot2::aes(PRS, Probability))
     if (isTRUE(show_prs_points)) {
       plot <- plot + ggplot2::geom_point(
-        ggplot2::aes(fill = PRS_group), shape = 21, colour = "white",
-        size = prs_point_size, alpha = prs_point_alpha, stroke = 0.25
-      ) + ggplot2::geom_point(
-        shape = 21, fill = "white", colour = "white",
-        size = max(0.1, prs_point_size * 0.48), alpha = 1, stroke = 0
+        shape = 21, fill = "white",
+        colour = unname(groups$colours[as.character(curves$PRS_group)]),
+        size = prs_point_size, alpha = prs_point_alpha,
+        stroke = .tiger_prs_point_stroke
+      )
+    }
+    if (isTRUE(show_genotype_labels)) {
+      plot <- plot + ggplot2::geom_label(
+        data = genotype_labels,
+        ggplot2::aes(x = PRS, y = Label_y, label = Genotype),
+        inherit.aes = FALSE, fill = genotype_label_fills, colour = "white",
+        linewidth = 0.25, label.padding = grid::unit(0.16, "lines"),
+        size = genotype_label_size, fontface = "bold", show.legend = FALSE
       )
     }
     plot <- plot + ggplot2::geom_point(
@@ -1018,14 +1037,10 @@ plot_tiger_apoe_rv_carrier_points <- function(
       alpha = rv_point_alpha, size = rv_point_size,
       stroke = rv_point_stroke
     ) +
-      ggplot2::scale_colour_manual(values = genotype_colours) +
       ggplot2::scale_fill_manual(values = groups$colours) +
       ggplot2::scale_shape_manual(values = rv_shapes) +
       ggplot2::coord_cartesian(xlim = range(prs_curve), ylim = y_limits) +
       ggplot2::guides(
-        colour = ggplot2::guide_legend(
-          order = 1, nrow = 1, byrow = TRUE
-        ),
         shape = ggplot2::guide_legend(
           order = 2, nrow = 1, byrow = TRUE,
           override.aes = .tiger_rv_shape_legend
@@ -1107,6 +1122,7 @@ plot_tiger_high_impact_rv_carrier_points <- function(
     K = NULL, SP = 0.5, r2_liability = NULL,
     high_impact_update = c("method-specific", "direct"),
     genotype_colours = NULL,
+    show_genotype_labels = TRUE, genotype_label_size = 3.1,
     show_prs_points = TRUE, prs_point_size = .tiger_prs_point_size,
     prs_point_alpha = 0.65,
     rv_point_size = 2.1, rv_point_alpha = .tiger_rv_point_alpha,
@@ -1130,6 +1146,8 @@ plot_tiger_high_impact_rv_carrier_points <- function(
     probability_method = probability_method, y_limits = y_limits,
     K = K, SP = SP, r2_liability = r2_liability,
     apoe_update = match.arg(high_impact_update), apoe_colours = genotype_colours,
+    show_genotype_labels = show_genotype_labels,
+    genotype_label_size = genotype_label_size,
     show_prs_points = show_prs_points, prs_point_size = prs_point_size,
     prs_point_alpha = prs_point_alpha, rv_point_size = rv_point_size,
     rv_point_alpha = rv_point_alpha, rv_point_border = rv_point_border,

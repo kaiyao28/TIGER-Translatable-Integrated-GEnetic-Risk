@@ -17,7 +17,8 @@ Optional PRS group labels draw separate coloured distributions as unconnected
 hollow circles, with filled RV-adjusted carrier points retaining the
 corresponding group colour.
 Hollow PRS and genotype-distribution points consistently default to size
-\code{1.25}. Their opacity is reduced in denser genotype panels. Solid
+\code{1.25} and stroke \code{0.65}. Their opacity is reduced in denser
+genotype panels. Solid
 RV-carrier points are intentionally larger and fully opaque by default.
 RV-carrier shape distinguishes one from multiple carried variants. Point fill
 is reserved for optional user-defined carrier groups and does not encode
@@ -39,5 +40,7 @@ For the combined APOE and RV plot, supplying \code{prs_group} and
 \code{prs_apoe} shows observed genotype-specific distributions in one panel
 using unconnected hollow points. Group determines colour. APOE distributions
 are labelled directly, and filled RV-carrier points retain the group colour.
+Genotype labels can be hidden with \code{show_genotype_labels = FALSE} or
+resized with \code{genotype_label_size}.
 \code{ggplot2} is required only when these functions are called.
 }

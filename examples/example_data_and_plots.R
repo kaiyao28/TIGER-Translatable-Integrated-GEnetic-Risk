@@ -206,7 +206,7 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
     file.path(
       figure_dir, "single_high_impact_variant_rv_carrier_points_v1.png"
     ),
-    single_variant_rv_plot, width = 11.5, height = 7.2, dpi = 160
+    single_variant_rv_plot, width = 7.5, height = 5.2, dpi = 160
   )
 
   apoe_rv_plot <- plot_tiger_apoe_rv_carrier_points(
@@ -230,6 +230,6 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
   )
   ggplot2::ggsave(
     file.path(figure_dir, "apoe_rv_carrier_points_v1.png"), apoe_rv_plot,
-    width = 11.5, height = 7.2, dpi = 160
+    width = 7.5, height = 5.2, dpi = 160
   )
 }

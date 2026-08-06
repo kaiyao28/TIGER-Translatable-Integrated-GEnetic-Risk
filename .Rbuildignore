@@ -1,5 +1,6 @@
 ^CITATION\.cff$
 ^examples/figures$
+^docs/assets/.*-candidate\.png$
 ^\.git$
 ^\.gitignore$
 ^\.\.Rcheck$

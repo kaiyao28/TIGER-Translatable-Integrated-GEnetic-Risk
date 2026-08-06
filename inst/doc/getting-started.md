@@ -4,11 +4,11 @@ TIGER is deliberately transparent: installation changes how functions are
 loaded, not how the method is reviewed. The complete implementations remain as
 plain R source in the repository's `R/` directory.
 
-Before applying TIGER, prepare a correctly centred liability-scale PRS and
+Before applying TIGER, prepare a correctly centred liability-scale PRS and a
 liability-scale PRS R-squared. The main interface accepts one row per person,
-with optional APOE and RV-status columns. If APOE is modelled separately,
-exclude the APOE region from PRS construction and prepare the matching
-reference PRS in the same way.
+with optional group, RV-status, and high-impact genotype columns. High-impact
+genotypes may represent a single variant coded 0/1/2 or a multi-variant system
+such as the six APOE genotypes.
 
 ```r
 library(TIGER)
@@ -27,10 +27,12 @@ results <- tiger_probabilities(
 )
 ```
 
-The default RV background is `prevalence = 0.50`, representing the balanced
-50:50 case/control sample calculation. Supply a justified population-level
-probability only when the reference evidence and intended interpretation are
-population-level.
+When modelling a high-impact component separately, exclude that variant or LD
+region from the PRS and its R-squared estimate. The RV probability prior is
+`0.50` for a balanced case-control analysis. Use a population-level prior only
+when the reference evidence and intended interpretation are population-level.
 
-The repository provides the full guides under `docs/`: `GETTING_STARTED.md`,
-`USAGE.md`, `LIABILITY_PRS_GUIDE.md`, `AD_APOE_GUIDE.md`, and `METHODS.md`.
+Use `?tiger_probabilities`, `?TIGER-high-impact`, and `?TIGER-plots` for the
+main interfaces. Full input, liability-scale PRS, method, and plotting guides
+are available from the
+[TIGER repository](https://github.com/Mengyin1223/TIGER).

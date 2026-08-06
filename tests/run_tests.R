@@ -500,10 +500,11 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
   )
   grouped_combined_build <- ggplot2::ggplot_build(grouped_combined_plot)
   stopifnot(
-    length(unique(grouped_combined_build$data[[1]]$colour)) == 6L,
-    all(grouped_combined_build$data[[2]]$shape == 21),
-    length(unique(grouped_combined_build$data[[2]]$fill)) == 2L,
-    length(unique(grouped_combined_build$data[[4]]$fill)) == 2L,
+    all(grouped_combined_build$data[[1]]$shape == 21),
+    length(unique(grouped_combined_build$data[[1]]$colour)) == 2L,
+    length(unique(grouped_combined_build$data[[2]]$fill)) == 6L,
+    all(grouped_combined_build$data[[2]]$colour == "white"),
+    length(unique(grouped_combined_build$data[[3]]$fill)) == 2L,
     is.null(grouped_combined_plot$labels$colour),
     identical(grouped_combined_plot$labels$fill, "Carrier group"),
     identical(grouped_combined_plot$labels$shape, "Number of RVs")
