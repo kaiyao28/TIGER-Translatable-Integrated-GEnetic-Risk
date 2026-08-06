@@ -231,6 +231,7 @@ When only effect-allele frequencies are available, the helper below assumes
 HWE separately in cases and controls:
 
 ```r
+# Replace these illustrative frequencies with values for your variant.
 single_variant_reference <- biallelic_genotype_reference(
   case_effect_allele_frequency = 0.20,
   control_effect_allele_frequency = 0.10
@@ -247,6 +248,12 @@ results_single_variant <- tiger_probabilities(
 )
 ```
 
+Replace `0.20` and `0.10` with the effect-allele frequencies for the variant in
+cases and controls. The helper creates genotype labels `"0"`, `"1"`, and `"2"`,
+so `individuals$Variant_genotype` must contain the corresponding effect-allele
+count for each person. If observed genotype frequencies are available, supply
+those directly as a three-row high-impact reference instead of assuming HWE.
+
 TIGER derives separate genotype-specific `K` and `SP` values before rerunning
 the selected PRS conversion. In the example plot, hollow red/blue circles show
 case/control observations for the three genotype distributions. Solid labelled
@@ -261,6 +268,12 @@ Full assumptions and reference options are in
 ### PRS + APOE
 
 ```r
+# Start with TIGER's illustrative six-genotype reference.
+apoe_reference <- tiger_default_apoe_reference()
+
+# Inspect it, then replace the frequencies with a suitable reference when available.
+apoe_reference
+
 results_apoe <- tiger_probabilities(
   individuals,
   K = 0.01, SP = 0.50,
@@ -272,12 +285,22 @@ results_apoe <- tiger_probabilities(
 )
 ```
 
+The bundled APOE frequencies are provided to demonstrate the workflow. For an
+analysis, replace them with case and control genotype frequencies appropriate
+to the phenotype, ancestry, and target population whenever such a reference is
+available.
+
 `results_apoe` contains `Probability_PRS` and
 `Probability_PRS_HIGH_IMPACT`. The
 optional `plot_tiger_apoe_curves()` example shows the six genotype-specific
 probability distributions, with controls and cases distinguished by colour.
 
 <img src="examples/figures/apoe_genotype_curves_v2.png" alt="APOE genotype-specific probability distributions" width="650">
+
+The same generic high-impact interface can represent another jointly defined
+multi-variant genotype system, not only APOE. Supply one mutually exclusive
+category per person and matching case/control frequencies for every category.
+See [HIGH_IMPACT_VARIANTS.md](docs/HIGH_IMPACT_VARIANTS.md) for requirements.
 
 ### PRS + APOE + RV
 
@@ -361,18 +384,18 @@ The example data are synthetic and require no external individual-level data.
 
 ## Documentation
 
-| Guide                                                | Purpose                                              |
-| ---------------------------------------------------- | ---------------------------------------------------- |
-| [GETTING_STARTED.md](docs/GETTING_STARTED.md)         | Installation, first run, glossary, and common errors |
-| [USAGE.md](docs/USAGE.md)                             | Complete high- and lower-level application workflows |
-| [LIABILITY_PRS_GUIDE.md](docs/LIABILITY_PRS_GUIDE.md) | Liability-scale PRS preparation and R² inputs       |
-| [DATA.md](docs/DATA.md)                               | Individual, RV, and high-impact reference schemas    |
-| [METHODS.md](docs/METHODS.md)                         | Probability methods, APOE update, and RV integration |
-| [PLOTTING.md](docs/PLOTTING.md)                       | Optional plotting and customisation                  |
-| [REFERENCE_DATA.md](docs/REFERENCE_DATA.md)           | Supplied SCZ/AD references and custom references     |
-| [AD_APOE_GUIDE.md](docs/AD_APOE_GUIDE.md)             | APOE-region exclusion and AD/APOE application        |
-| [HIGH_IMPACT_VARIANTS.md](docs/HIGH_IMPACT_VARIANTS.md) | Single common high-impact variant application       |
-| [REFERENCES.md](docs/REFERENCES.md)                   | Method publications and adaptations                  |
+| Guide                                                  | Purpose                                              |
+| ------------------------------------------------------ | ---------------------------------------------------- |
+| [GETTING_STARTED.md](docs/GETTING_STARTED.md)           | Installation, first run, glossary, and common errors |
+| [USAGE.md](docs/USAGE.md)                               | Complete high- and lower-level application workflows |
+| [LIABILITY_PRS_GUIDE.md](docs/LIABILITY_PRS_GUIDE.md)   | Liability-scale PRS preparation and R² inputs       |
+| [DATA.md](docs/DATA.md)                                 | Individual, RV, and high-impact reference schemas    |
+| [METHODS.md](docs/METHODS.md)                           | Probability methods, APOE update, and RV integration |
+| [PLOTTING.md](docs/PLOTTING.md)                         | Optional plotting and customisation                  |
+| [REFERENCE_DATA.md](docs/REFERENCE_DATA.md)             | Supplied SCZ/AD references and custom references     |
+| [AD_APOE_GUIDE.md](docs/AD_APOE_GUIDE.md)               | APOE-region exclusion and AD/APOE application        |
+| [HIGH_IMPACT_VARIANTS.md](docs/HIGH_IMPACT_VARIANTS.md) | Single common high-impact variant application        |
+| [REFERENCES.md](docs/REFERENCES.md)                     | Method publications and adaptations                  |
 
 ## Scope
 

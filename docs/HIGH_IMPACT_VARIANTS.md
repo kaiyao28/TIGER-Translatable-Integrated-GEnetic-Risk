@@ -22,6 +22,12 @@ Each frequency column must sum to one. Genotype labels may instead be study
 labels such as `AA`, `AG`, and `GG`, provided the individual data use exactly
 the same labels.
 
+The reference may also describe mutually exclusive categories jointly defined
+by multiple linked or interacting variants, as in the six-genotype APOE
+example. In that setting, provide one category per individual and one reference
+row per possible category. The case and control frequencies must describe the
+joint categories directly and each frequency column must still sum to one.
+
 If only effect-allele frequencies in cases and controls are available, TIGER
 can construct the three genotype frequencies:
 
@@ -101,7 +107,8 @@ and retains the older APOE-specific output-column names.
 
 - Case and control frequencies must refer to comparable phenotype definitions,
   ancestry, age context, and variant coding.
-- The high-impact variant must not be double counted in the PRS.
+- All variants defining the high-impact categories must be excluded from the
+  PRS and its R² estimate to prevent double counting.
 - HWE is an explicit assumption only when allele frequencies are converted to
   genotype frequencies.
 - External calibration remains necessary before clinical interpretation.
