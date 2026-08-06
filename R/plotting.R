@@ -56,9 +56,10 @@
   mapping$y <- as.name(y_column)
   mapping$label <- as.name("RV_label")
   if (requireNamespace("ggrepel", quietly = TRUE)) {
-    plot + ggrepel::geom_text_repel(
+    plot + ggrepel::geom_label_repel(
       data = data, mapping = mapping, inherit.aes = FALSE,
-      size = 3, colour = "grey15",
+      size = 2.9, colour = "grey15", fill = "white",
+      label.size = 0.18, label.padding = grid::unit(0.12, "lines"),
       box.padding = 0.45, point.padding = 0.25,
       force = 2, force_pull = 0.25,
       max.time = 2, max.iter = 50000, seed = 1049,
@@ -69,9 +70,10 @@
   } else {
     mapping$y <- as.name("Label_y")
     mapping$hjust <- as.name("Label_hjust")
-    plot + ggplot2::geom_text(
+    plot + ggplot2::geom_label(
       data = data, mapping = mapping, inherit.aes = FALSE,
-      size = 3, colour = "grey15", check_overlap = FALSE
+      size = 2.9, colour = "grey15", fill = "white",
+      linewidth = 0.18, label.padding = grid::unit(0.12, "lines")
     )
   }
 }

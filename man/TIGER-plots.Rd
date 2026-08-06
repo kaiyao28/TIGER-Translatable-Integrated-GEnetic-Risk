@@ -26,7 +26,8 @@ damaging or protective effect direction.
 The RV plotting functions expose point size, alpha, border, stroke, shape,
 group-colour and optional RV-label arguments directly. Labels are drawn when
 \code{rv_labels} is supplied and can be disabled with
-\code{show_rv_labels = FALSE}. The functions return standard \code{ggplot}
+\code{show_rv_labels = FALSE}. RV labels use black text on a compact white
+background to remain legible over distribution points. The functions return standard \code{ggplot}
 objects for further editing. See \code{docs/PLOTTING.md} and
 \code{R/plotting.R}.
 APOE reference distributions and direct labels use a shared warm-to-cool

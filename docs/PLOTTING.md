@@ -72,7 +72,9 @@ supplied without affecting calls that do not include names.
 RV names are shown automatically when `rv_labels` is supplied. Set
 `show_rv_labels = FALSE` to hide them. Supply one value in `rv_labels` for every
 plotted carrier. Labels can contain a single variant name or a combined
-description such as `"SORL1; TREM2"` for carriers with multiple RVs. When the
+description such as `"SORL1; TREM2"` for carriers with multiple RVs. Labels use
+black text on a compact white background so they remain legible over hollow
+distribution points. When the
 optional `ggrepel` package is installed, TIGER uses deterministic force-based
 repulsion and leader lines to separate nearby labels. Without `ggrepel`, TIGER
 uses a dependency-free staggered fallback. For very dense figures, hide the

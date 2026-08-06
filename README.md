@@ -242,6 +242,10 @@ results_single_variant <- tiger_probabilities(
   K = 0.01, SP = 0.50,
   method = "PAIR (summary)",
   r2_liability = r2_liability,
+  include_rv = TRUE,
+  rv_reference = rv_reference,
+  rv_status_col = "RV_status",
+  rv_prevalence = 0.50,
   include_high_impact = TRUE,
   high_impact_col = "Variant_genotype",
   high_impact_reference = single_variant_reference
@@ -255,10 +259,11 @@ count for each person. If observed genotype frequencies are available, supply
 those directly as a three-row high-impact reference instead of assuming HWE.
 
 TIGER derives separate genotype-specific `K` and `SP` values before rerunning
-the selected PRS conversion. In the example plot, hollow red/blue circles show
-case/control observations for the three genotype distributions. Solid labelled
-points show RV-adjusted carriers, and shape distinguishes one from multiple
-RVs.
+the selected PRS conversion and then applies the RV update. The returned table
+therefore contains PRS-only, PRS + RV, PRS + high-impact variant, and combined
+probabilities. In the example plot, hollow red/blue circles show case/control
+observations for the three genotype distributions. Solid labelled points show
+RV-adjusted carriers, and shape distinguishes one from multiple RVs.
 
 <img src="examples/figures/single_high_impact_variant_rv_carrier_points_v1.png" alt="Single common high-impact variant distributions and RV-adjusted carriers" width="650">
 
