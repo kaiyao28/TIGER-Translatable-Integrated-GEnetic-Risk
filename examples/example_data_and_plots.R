@@ -49,14 +49,14 @@ individuals <- tiger_probabilities(
   r2_liability = r2_liability,
   include_rv = TRUE, rv_reference = rv_reference,
   rv_status_col = "RV_status", rv_prevalence = SP_RV,
-  include_high_impact = TRUE, high_impact_col = "APOE",
-  high_impact_reference = apoe_reference
+  include_apoe = TRUE, apoe_col = "APOE",
+  apoe_reference = apoe_reference
 )
 
 example_output <- individuals[, c(
   "ID", "PRS_liability", "APOE", "RV_count", "Probability_PRS",
-  "Probability_PRS_RV", "Probability_PRS_HIGH_IMPACT",
-  "Probability_PRS_HIGH_IMPACT_RV"
+  "Probability_PRS_RV", "Probability_PRS_APOE",
+  "Probability_PRS_APOE_RV"
 )]
 print(utils::head(example_output, 12))
 message("Calculated probabilities for ", nrow(example_output),
@@ -142,7 +142,7 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
     probability_method = "PAIR (summary)",
     K = K, SP = SP, r2_liability = r2_liability,
     sample_prs = individuals$PRS_liability,
-    sample_probability = individuals$Probability_PRS_HIGH_IMPACT,
+    sample_probability = individuals$Probability_PRS_APOE,
     sample_genotype = individuals$APOE,
     sample_group = individuals$Group,
     group_colours = plotted_group_colours
@@ -221,9 +221,9 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
     carrier_prs = individuals$PRS_liability[carrier_index],
     carrier_apoe = individuals$APOE[carrier_index],
     carrier_probability_before_rv =
-      individuals$Probability_PRS_HIGH_IMPACT[carrier_index],
+      individuals$Probability_PRS_APOE[carrier_index],
     carrier_probability_after_rv =
-      individuals$Probability_PRS_HIGH_IMPACT_RV[carrier_index],
+      individuals$Probability_PRS_APOE_RV[carrier_index],
     rv_count = individuals$RV_count[carrier_index],
     prs_group = plotted_prs_group,
     prs_apoe = individuals$APOE,

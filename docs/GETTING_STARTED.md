@@ -143,8 +143,8 @@ results_rv <- tiger_probabilities(
 results_apoe <- tiger_probabilities(
   individuals, K = K, SP = SP,
   method = "PAIR (summary)", r2_liability = r2_liability,
-  include_high_impact = TRUE, high_impact_col = "APOE",
-  high_impact_reference = apoe_reference
+  include_apoe = TRUE, apoe_col = "APOE",
+  apoe_reference = apoe_reference
 )
 
 # Full PRS + RV + APOE model
@@ -161,14 +161,14 @@ results <- tiger_probabilities(
   rv_reference = rv_reference,
   rv_status_col = "RV_status",
   rv_prevalence = SP,
-  include_high_impact = TRUE,
-  high_impact_col = "APOE",
-  high_impact_reference = apoe_reference
+  include_apoe = TRUE,
+  apoe_col = "APOE",
+  apoe_reference = apoe_reference
 )
 
 results[c(
   "ID", "Probability_PRS", "Probability_PRS_RV",
-  "Probability_PRS_HIGH_IMPACT", "Probability_PRS_HIGH_IMPACT_RV"
+  "Probability_PRS_APOE", "Probability_PRS_APOE_RV"
 )]
 ```
 

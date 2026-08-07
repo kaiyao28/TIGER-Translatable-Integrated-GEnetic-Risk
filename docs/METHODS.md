@@ -72,9 +72,9 @@ al. It requires target and population-reference PRSs, observed-scale R², `K`,
 prevalence and sample-prevalence values from case/control genotype frequencies.
 `high_impact_method_probability()` then recalculates BPC, GenoPred, PAIR
 (summary), or PAIR (sample) using those values. This is the canonical TIGER
-high-impact-variant update. The main `tiger_probabilities()` interface exposes
-this through `include_high_impact`, `high_impact_col`, and
-`high_impact_reference`. Before using this route, users must remove the
+high-impact-variant update. The main `tiger_probabilities()` interface uses
+`include_high_impact` for a generic high-impact component and `include_apoe`
+for the six-genotype APOE model. Before using either route, users must remove the
 separately modelled variant and an appropriate LD-aware region from PRS
 construction and R² estimation, then document the excluded interval or variant
 set. TIGER cannot verify this preprocessing step from a probability input table.

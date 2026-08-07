@@ -65,8 +65,8 @@ results <- tiger_probabilities(
   group_col = "Group", r2_liability = r2_liability,
   include_rv = TRUE, rv_reference = rv_reference,
   rv_status_col = "RV_status", rv_prevalence = 0.50,
-  include_high_impact = TRUE, high_impact_col = "APOE",
-  high_impact_reference = apoe_reference
+  include_apoe = TRUE, apoe_col = "APOE",
+  apoe_reference = apoe_reference
 )
 ```
 
@@ -93,14 +93,17 @@ and output rows remain aligned to their input IDs.
 |---|---|
 | neither | `Probability_PRS` |
 | RV | `Probability_PRS`, `Probability_PRS_RV` |
-| High-impact component | `Probability_PRS`, `Probability_PRS_HIGH_IMPACT` |
-| RV and high-impact component | all four conditions, including `Probability_PRS_HIGH_IMPACT_RV` |
+| Generic high-impact component | `Probability_PRS`, `Probability_PRS_HIGH_IMPACT` |
+| RV and generic high-impact component | all four conditions, including `Probability_PRS_HIGH_IMPACT_RV` |
+| APOE | `Probability_PRS`, `Probability_PRS_APOE` |
+| RV and APOE | all four conditions, including `Probability_PRS_APOE_RV` |
 
-Both optional layers default to off. `rv_reference` is mandatory when
-`include_rv = TRUE`. When `include_high_impact = TRUE`, supply the genotype
-column and a matched reference. Beforehand, exclude the separately modelled
-variant and a justified LD-aware region from PRS construction and R² estimation.
-The older `include_apoe` arguments remain available for compatibility.
+All optional layers default to off. `rv_reference` is mandatory when
+`include_rv = TRUE`. Use `include_high_impact` for a generic high-impact
+component and `include_apoe` for the six-genotype APOE model. Supply the
+corresponding genotype column and reference. Beforehand, exclude the separately
+modelled variant and a justified LD-aware region from PRS construction and R²
+estimation.
 
 ## 3. Lower-level, separate-record workflow
 
@@ -234,7 +237,7 @@ Inspect row counts, missing values, probability ranges and ID alignment before
 using this table. Do not publish individual-level genetic-risk results or
 identifiers without the required governance and disclosure controls.
 
-## 6. Plot RV carriers
+## 4. Plot RV carriers
 
 Unconnected hollow circles show the PRS-only distributions for the two groups.
 Larger filled points show RV-adjusted carriers in the matching group colour.
@@ -273,7 +276,7 @@ each carrier. The same named `group_colours` are applied to hollow PRS
 observations and filled adjusted points. RV names are shown when `rv_labels` is supplied. See
 [`PLOTTING.md`](PLOTTING.md).
 
-## 7. Plot APOE and combined APOE + RV
+## 5. Plot APOE and combined APOE + RV
 
 APOE-only genotype curves:
 

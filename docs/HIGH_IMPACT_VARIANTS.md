@@ -99,9 +99,9 @@ results[c("ID", "Probability_PRS", "Probability_PRS_HIGH_IMPACT")]
 ```
 
 Set `include_rv = TRUE` and provide the usual RV inputs to additionally obtain
-`Probability_PRS_HIGH_IMPACT_RV`. The generic flag also accepts a six-genotype
-APOE reference. `include_apoe` remains available for backward compatibility
-and retains the older APOE-specific output-column names.
+`Probability_PRS_HIGH_IMPACT_RV`. Use the separate `include_apoe` route for the
+six-genotype APOE model; it returns `Probability_PRS_APOE` and, with RVs,
+`Probability_PRS_APOE_RV`.
 
 ## Assumptions
 

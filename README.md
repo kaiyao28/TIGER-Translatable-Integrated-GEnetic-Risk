@@ -16,22 +16,13 @@ Liability-scale PRS ──> estimated disorder probability
                          └─ PRS + common high-impact component + RV
 ```
 
-Every branch is a probability output. The labels describe which genetic
-components contribute to that probability, rather than different forms of the
-PRS itself.
+The selected method converts PRS to probability. TIGER then optionally adds
+RVs and/or one common high-impact component. APOE is a six-genotype example of
+the high-impact layer, not an RV.
 
-The high-impact and RV layers are optional. A single variant and APOE are
-alternative uses of the same high-impact layer, not components to add together.
-APOE is modelled as six mutually exclusive genotypes and is not treated as an
-RV.
-
-`K` is population disease prevalence and `SP` is the target-sample case
-proportion. `rv_prevalence` is the disease-probability prior used when
-translating RV odds ratios; it is **not** RV allele frequency. Use
-`rv_prevalence = 0.50` for the balanced case-control scale used in the examples.
-For a population-level RV update, use a justified population disease prevalence
-(often `K`) only when the RV reference evidence and intended probability scale
-are population-compatible.
+`K` is population prevalence and `SP` is the target-sample case proportion.
+`rv_prevalence` is the probability prior for the RV update, not RV frequency.
+See [METHODS.md](docs/METHODS.md) for definitions and scale selection.
 
 ## Installation
 
@@ -48,6 +39,19 @@ Core calculations require R 4.1 or later. Optional plotting functions require
 `ggplot2`, with `ggrepel` used when available to improve RV-label placement.
 The `read_tiger_reference()` helper requires `readxl` when importing Excel
 reference files.
+
+## Probability methods
+
+The four methods below convert **PRS to probability**. TIGER applies the
+optional high-impact and RV updates if required.
+
+- `"BPC"`
+- `"GenoPred"`
+- `"PAIR (summary)"`—theoretical moments from liability-scale R²
+- `"PAIR (sample)"`—case/control PRS moments from a suitable sample
+
+The examples use `"PAIR (summary)"`. See [METHODS.md](docs/METHODS.md) for
+required inputs, assumptions, and formulas.
 
 ## 1. Prepare the liability-scale PRS
 
@@ -128,15 +132,11 @@ cases and controls. Each frequency column must sum to one:
 | e3/e4    |    0.3960 |       0.2054 |
 | e4/e4    |    0.0900 |       0.0169 |
 
-These values are illustrative. Use references appropriate to the phenotype,
-ancestry, population, and intended probability scale. See
-[DATA.md](docs/DATA.md) for complete schemas and
-[REFERENCE_DATA.md](docs/REFERENCE_DATA.md) for reference preparation and
-provenance.
-
-The same reference schema also accepts a single 0/1/2 high-impact variant. See
-the concise example below and
-[HIGH_IMPACT_VARIANTS.md](docs/HIGH_IMPACT_VARIANTS.md) for details.
+These values are illustrative. Use compatible study references. See
+[DATA.md](docs/DATA.md) for schemas and
+[REFERENCE_DATA.md](docs/REFERENCE_DATA.md) for preparation and provenance.
+The same genotype-reference schema supports a single 0/1/2 high-impact
+variant; see [HIGH_IMPACT_VARIANTS.md](docs/HIGH_IMPACT_VARIANTS.md).
 
 ## 3. Calculate probabilities
 
@@ -162,26 +162,23 @@ results <- tiger_probabilities(
   rv_reference = rv_reference,
   rv_status_col = "RV_status",
   rv_prevalence = 0.50,
-  include_high_impact = TRUE,
-  high_impact_col = "APOE",
-  high_impact_reference = apoe_reference
+  include_apoe = TRUE,
+  apoe_col = "APOE",
+  apoe_reference = apoe_reference
 )
 ```
 
-Here `rv_prevalence = 0.50` gives the balanced-sample RV update. It should not
-be replaced by an RV allele frequency. Use `rv_prevalence = K` only for a
-justified population-level analysis with compatible RV evidence.
+Here `rv_prevalence = 0.50` gives a balanced-sample RV update. Population-level
+use requires a compatible reference and justified population prior.
 
-The input columns and row order are preserved. Depending on the enabled
-layers, TIGER appends:
+The input columns and row order are preserved. TIGER always returns
+`Probability_PRS` and adds clearly labelled columns for enabled components:
 
-- `Probability_PRS`
-- `Probability_PRS_RV`
-- `Probability_PRS_HIGH_IMPACT`
-- `Probability_PRS_HIGH_IMPACT_RV`
-
-The older `include_apoe` interface remains available for compatibility and
-returns the corresponding APOE-specific column names.
+| Enabled component                               | Additional probability columns                                                   |
+| ----------------------------------------------- | -------------------------------------------------------------------------------- |
+| RV                                              | `Probability_PRS_RV`                                                           |
+| Generic or three-genotype high-impact component | `Probability_PRS_HIGH_IMPACT`, and with RV: `Probability_PRS_HIGH_IMPACT_RV` |
+| Six-genotype APOE component                     | `Probability_PRS_APOE`, and with RV: `Probability_PRS_APOE_RV`               |
 
 RV count and damaging/protective component columns are also returned when RVs
 are enabled.
@@ -252,18 +249,9 @@ results_single_variant <- tiger_probabilities(
 )
 ```
 
-Replace `0.20` and `0.10` with the effect-allele frequencies for the variant in
-cases and controls. The helper creates genotype labels `"0"`, `"1"`, and `"2"`,
-so `individuals$Variant_genotype` must contain the corresponding effect-allele
-count for each person. If observed genotype frequencies are available, supply
-those directly as a three-row high-impact reference instead of assuming HWE.
-
-TIGER derives separate genotype-specific `K` and `SP` values before rerunning
-the selected PRS conversion and then applies the RV update. The returned table
-therefore contains PRS-only, PRS + RV, PRS + high-impact variant, and combined
-probabilities. In the example plot, hollow red/blue circles show case/control
-observations for the three genotype distributions. Solid labelled points show
-RV-adjusted carriers, and shape distinguishes one from multiple RVs.
+`Variant_genotype` must contain `0`, `1`, or `2` effect alleles. Replace the
+illustrative frequencies with study values. The helper assumes HWE within
+cases and controls; observed genotype frequencies are preferred.
 
 <img src="examples/figures/single_high_impact_variant_rv_carrier_points_v1.png" alt="Single common high-impact variant distributions and RV-adjusted carriers" width="650">
 
@@ -284,28 +272,19 @@ results_apoe <- tiger_probabilities(
   K = 0.01, SP = 0.50,
   method = "PAIR (summary)",
   r2_liability = r2_liability,
-  include_high_impact = TRUE,
-  high_impact_col = "APOE",
-  high_impact_reference = apoe_reference
+  include_apoe = TRUE,
+  apoe_col = "APOE",
+  apoe_reference = apoe_reference
 )
 ```
 
-The bundled APOE frequencies are provided to demonstrate the workflow. For an
-analysis, replace them with case and control genotype frequencies appropriate
-to the phenotype, ancestry, and target population whenever such a reference is
-available.
-
-`results_apoe` contains `Probability_PRS` and
-`Probability_PRS_HIGH_IMPACT`. The
-optional `plot_tiger_apoe_curves()` example shows the six genotype-specific
-probability distributions, with controls and cases distinguished by colour.
+The bundled frequencies demonstrate the workflow only. Replace them with an
+appropriate reference when available.
 
 <img src="examples/figures/apoe_genotype_curves_v2.png" alt="APOE genotype-specific probability distributions" width="650">
 
-The same generic high-impact interface can represent another jointly defined
-multi-variant genotype system, not only APOE. Supply one mutually exclusive
-category per person and matching case/control frequencies for every category.
-See [HIGH_IMPACT_VARIANTS.md](docs/HIGH_IMPACT_VARIANTS.md) for requirements.
+The same interface accepts another mutually exclusive multi-variant genotype
+system. See [HIGH_IMPACT_VARIANTS.md](docs/HIGH_IMPACT_VARIANTS.md).
 
 ### PRS + APOE + RV
 
@@ -319,9 +298,9 @@ results_combined <- tiger_probabilities(
   rv_reference = rv_reference,
   rv_status_col = "RV_status",
   rv_prevalence = 0.50,
-  include_high_impact = TRUE,
-  high_impact_col = "APOE",
-  high_impact_reference = apoe_reference
+  include_apoe = TRUE,
+  apoe_col = "APOE",
+  apoe_reference = apoe_reference
 )
 ```
 
@@ -331,49 +310,12 @@ probabilities relative to the APOE genotype distributions.
 
 <img src="examples/figures/apoe_rv_carrier_points_v1.png" alt="APOE genotype distributions and RV-adjusted carriers" width="650">
 
-RVs require an RV effect reference. The generic high-impact route requires a
-user-supplied genotype reference. The legacy APOE route can use TIGER's
-illustrative bundled reference, but a population- and phenotype-matched
-reference is preferred. Any separately modelled variant or region must be
-excluded from PRS construction and R² estimation.
-
-## Probability methods
-
-TIGER supports:
-
-- `"BPC"`
-- `"GenoPred"`
-- `"PAIR (summary)"`, using theoretical moments derived from liability-scale R²
-- `"PAIR (sample)"`, using case/control PRS moments from a suitable sample
-
-Change the `method` argument and supply its required inputs. PAIR (summary) is
-used in the worked example. See [METHODS.md](docs/METHODS.md) for definitions,
-assumptions, formulas, and the lower-level method-specific functions.
-
 ## Plotting is optional
 
-The returned table can be analysed or plotted with any software. TIGER's
-plotting functions are optional conveniences and are kept separate from the
-probability calculations.
-
-Across the supplied plots, small hollow circles represent PRS or
-genotype-specific probability distributions. Larger solid points identify
-RV-adjusted carriers, and carrier shape distinguishes one RV from two or more.
-When groups are supplied, the same group colours are retained before and after
-RV adjustment. Effect direction is shown by the probability shift, not by a
-separate risk/protective colour.
-
-- [PLOTTING.md](docs/PLOTTING.md) explains the available plots, aesthetics,
-  labels, colours, point sizes, and direct `ggplot2` editing.
-- [example_data_and_plots.R](examples/example_data_and_plots.R) is a complete
-  runnable example using synthetic data.
-- Generated example figures are stored under `examples/figures/`.
-
-The helpers used above return ordinary `ggplot` objects, so users may modify
-them or plot the returned TIGER probability columns independently. Hollow
-distribution points share a default size of `1.25` and outline width of
-`0.65`. Point size, opacity, colours, borders, labels, and shapes remain
-editable through function arguments.
+The returned table can be used with any plotting software. TIGER's optional
+helpers return ordinary `ggplot` objects. See
+[PLOTTING.md](docs/PLOTTING.md) for interpretation and customisation, or run
+[example_data_and_plots.R](examples/example_data_and_plots.R).
 
 ## Run the examples
 
