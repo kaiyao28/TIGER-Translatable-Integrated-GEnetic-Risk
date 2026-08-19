@@ -1,0 +1,4 @@
+ID,PRS_liability,Group,RV_IDs,High_impact_genotype,APOE_genotype
+P001,-0.42,Control,,,e3/e3
+P002,0.31,Case,RISK_A,,e3/e4
+P003,0.18,Case,RISK_A;PROTECT_C,,e4/e4

@@ -8,7 +8,7 @@ are synthetic examples; begin with them before substituting study data.
 - R 4.1 or later;
 - `ggplot2` for figures;
 - `ggrepel` for improved RV-label placement (optional); and
-- `readxl` for the supplied SCZ/AD Excel references.
+- `readxl` only when importing a user's own Excel reference.
 
 Install the optional packages once:
 
@@ -17,6 +17,12 @@ install.packages(c("ggplot2", "ggrepel", "readxl"))
 ```
 
 The probability calculations otherwise use base R and `stats`.
+
+The recommended beginner workflow is:
+
+```text
+Install → prepare liability-scale PRS → check inputs → calculate → inspect → optionally plot
+```
 
 ## 2. Open the repository folder
 
@@ -67,8 +73,8 @@ Expected result: the scripts print probabilities, create seven figures under
 | `rv_prevalence` | Disease-probability prior for the RV update; 0.50 gives the balanced-sample calculation and is not RV allele frequency |
 | `r2_liability` | Variance explained by the PRS on the liability scale |
 | PAIR (summary) | Default example conversion using theoretical moments from `K` and liability-scale R² |
-| APOE status | Optional genotype column with one value per individual |
-| RV status | Optional delimited RV-ID column or mapped logical/0–1 columns |
+| APOE status | Optional `APOE_genotype` value matching reference `APOE_genotype` |
+| RV status | Optional `RV_IDs` values matching RV-reference `RV_IDs` |
 
 ## 6. Start with PRS only
 
@@ -111,22 +117,22 @@ individuals <- data.frame(
   ID = sprintf("P%03d", 1:6),
   PRS_liability = c(-0.80, -0.25, 0.05, 0.30, 0.65, 1.00),
   Group = c("Control", "Control", "Control", "Case", "Case", "Case"),
-  RV_status = c("", "PROTECT_C", "RISK_A", "", "RISK_B",
+  RV_IDs = c("", "PROTECT_C", "RISK_A", "", "RISK_B",
                 "RISK_A;PROTECT_C"),
-  APOE = c("e2/e2", "e2/e3", "e2/e4", "e3/e3", "e3/e4", "e4/e4")
+  APOE_genotype = c("e2/e2", "e2/e3", "e2/e4", "e3/e3", "e3/e4", "e4/e4")
 )
 
 rv_reference <- data.frame(
-  ID = c("RISK_A", "RISK_B", "PROTECT_C"),
+  RV_IDs = c("RISK_A", "RISK_B", "PROTECT_C"),
   Symbol = c("GENE_A", "GENE_B", "GENE_C"),
-  Class = c("PTV", "Damaging_missense", "Protective"),
+  Class = c("PTV", "Damaging_missense", "CNV"),
   Case_freq = c(0.010, 0.015, 0.003),
   Control_freq = c(0.002, 0.005, 0.008),
   OR = c(8.0, 4.0, 0.4)
 )
 
 apoe_reference <- data.frame(
-  Genotype = c("e2/e2", "e2/e3", "e2/e4", "e3/e3", "e3/e4", "e4/e4"),
+  APOE_genotype = c("e2/e2", "e2/e3", "e2/e4", "e3/e3", "e3/e4", "e4/e4"),
   Case_freq = c(0.0016, 0.0528, 0.0240, 0.4356, 0.3960, 0.0900),
   Control_freq = c(0.0064, 0.1264, 0.0208, 0.6241, 0.2054, 0.0169)
 )
@@ -136,18 +142,26 @@ results_rv <- tiger_probabilities(
   individuals, K = K, SP = SP,
   method = "PAIR (summary)", r2_liability = r2_liability,
   include_rv = TRUE, rv_reference = rv_reference,
-  rv_status_col = "RV_status", rv_prevalence = SP
+  rv_status_col = "RV_IDs", rv_prevalence = SP
 )
 
 # PRS + APOE only
 results_apoe <- tiger_probabilities(
   individuals, K = K, SP = SP,
   method = "PAIR (summary)", r2_liability = r2_liability,
-  include_apoe = TRUE, apoe_col = "APOE",
+  include_apoe = TRUE, apoe_col = "APOE_genotype",
   apoe_reference = apoe_reference
 )
 
 # Full PRS + RV + APOE model
+check_tiger_inputs(
+  individuals,
+  include_rv = TRUE, rv_reference = rv_reference,
+  rv_status_col = "RV_IDs",
+  include_apoe = TRUE, apoe_col = "APOE_genotype",
+  apoe_reference = apoe_reference
+)
+
 results <- tiger_probabilities(
   data = individuals,
   K = K,
@@ -155,14 +169,13 @@ results <- tiger_probabilities(
   method = "PAIR (summary)",
   id_col = "ID",
   prs_col = "PRS_liability",
-  group_col = "Group",
   r2_liability = r2_liability,
   include_rv = TRUE,
   rv_reference = rv_reference,
-  rv_status_col = "RV_status",
+  rv_status_col = "RV_IDs",
   rv_prevalence = SP,
   include_apoe = TRUE,
-  apoe_col = "APOE",
+  apoe_col = "APOE_genotype",
   apoe_reference = apoe_reference
 )
 
@@ -173,9 +186,9 @@ results[c(
 ```
 
 `Group` is retained for plotting but does not affect the calculations. Empty
-`RV_status` values mean that the individual carries none of the listed RVs.
+`RV_IDs` values mean that the individual carries none of the listed RVs.
 Multiple RV IDs are separated by a semicolon. The reference values above are
-illustrative and must be replaced with suitable study references.
+hypothetical and must be replaced with suitable reviewed references.
 
 ## 8. Replace the synthetic files carefully
 
@@ -190,11 +203,20 @@ Work through this order:
    and prepare a harmonised RV effect reference.
 5. Match any source records by ID before constructing the merged table.
 6. Replace and justify `K`, `SP`, `rv_prevalence` and liability-scale R².
-7. Call `tiger_probabilities()` and inspect the requested probability columns.
+7. Run `check_tiger_inputs()` with the optional layers you intend to use.
+8. Call `tiger_probabilities()` and inspect the requested probability columns.
+
+Hypothetical CSV templates are available through `tiger_template_file()`. For
+example:
+
+```r
+read.csv(tiger_template_file("individual_template.csv"))
+read.csv(tiger_template_file("rv_reference_template.csv"))
+```
 
 Use [`USAGE.md`](USAGE.md) for the complete code, [`DATA.md`](DATA.md) for file
-schemas, and [`REFERENCE_DATA.md`](REFERENCE_DATA.md) for supplied or custom
-SCZ/AD references.
+schemas, and [`REFERENCE_DATA.md`](REFERENCE_DATA.md) for preparing a user's
+own RV reference.
 
 ## Common errors
 

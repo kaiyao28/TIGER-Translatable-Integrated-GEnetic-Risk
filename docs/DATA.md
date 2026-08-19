@@ -1,24 +1,29 @@
 # Input-data schemas
 
-Supplied disorder references are separated under `inst/extdata/reference/SCZ/` and
-`inst/extdata/reference/AD/`. See [`REFERENCE_DATA.md`](REFERENCE_DATA.md) for the file
-list, disorder-specific column mappings, loading functions and instructions for
-creating a custom reference. These workbooks are reference inputs, not
-dependencies or universal defaults.
+Users are required to prepare their own RV reference. See
+[`REFERENCE_DATA.md`](REFERENCE_DATA.md) for the required schema.
 
 ## Harmonised schema
 
 | Field | Type | Definition |
 |---|---|---|
-| `ID` | character | Optional stable record identifier |
-| `Symbol` | character | Gene, syndrome or variant label |
+| `RV_IDs` | character | Required carrier-matching key; one value per reference row |
+| `OR` | numeric | Positive odds ratio; required unless calculated from frequencies |
+| `Symbol` | character | Optional human-readable label; defaults to `RV_IDs` |
 | `Class` | character | Optional PTV, MPC > 2, CNV or other category |
-| `Case_freq` | numeric | Proportion of cases carrying the variant |
-| `Control_freq` | numeric | Proportion of controls carrying the variant |
-| `OR` | numeric | Positive odds ratio; OR < 1 is protective |
+| `Case_freq` | numeric | Case carrier frequency used when calculating a missing OR |
+| `Control_freq` | numeric | Control carrier frequency used when calculating a missing OR |
+| `Population_freq` | numeric | Optional replacement for a missing control frequency |
 
-For a custom table, an odds ratio may be calculated from comparable case and
-control carrier frequencies:
+Column names are matched case-insensitively. Each row must contain a positive
+OR or enough frequency information to calculate one. When `Control_freq` is
+missing, `Population_freq` is used as its proxy. The harmonised output records
+the provenance in `OR_source` and `Control_freq_source`.
+For imported legacy tables, `ID`, `RV_ID`, and `Variant_ID` are accepted aliases
+for `RV_IDs` and are normalised internally.
+
+For a custom table, TIGER calculates a missing odds ratio from comparable case
+and control carrier frequencies:
 
 ```r
 OR <- (Case_freq / (1 - Case_freq)) /
@@ -50,9 +55,12 @@ reference <- prepare_rv_reference(raw, source = "MY_DISORDER")
 
 | Field | Definition |
 |---|---|
-| `Genotype` | Genotype label matching the target data |
+| `High_impact_genotype` or `APOE_genotype` | Genotype label matching the corresponding individual column |
 | `Case_freq` | Genotype frequency among cases |
 | `Control_freq` | Genotype frequency among controls |
+
+`Genotype` is accepted as an imported-table alias for either genotype field and
+is normalised internally.
 
 Case and control frequencies must each sum to one. For APOE, observed genotype
 frequencies are preferred. `apoe_genotype_reference()` can derive the six
@@ -73,12 +81,12 @@ the merged input:
 | Field | Definition |
 |---|---|
 | `ID` | Unique individual identifier matching the prepared PRS input |
-| `APOE` | One genotype label such as `e3/e3`, `e3/e4` or `e4/e4` |
+| `APOE_genotype` | One genotype label such as `e3/e3`, `e3/e4` or `e4/e4` |
 
 Join APOE status to the PRS table by `ID`, never by row position. Check for
 duplicated IDs, unmatched individuals, unexpected genotype labels and missing
 values before calling `high_impact_method_probability()`. The genotype labels
-must match the `Genotype` values in the APOE case/control reference.
+must match the `APOE_genotype` values in the APOE case/control reference.
 
 ## Merged individual-table schema
 
@@ -90,14 +98,15 @@ and RV status from one table. One row must represent one unique individual.
 | `ID` | Unique individual identifier |
 | `PRS_liability` | Finite liability-scale PRS |
 | `Group` (optional) | Group retained unchanged for analysis or plotting |
-| `High_impact` (optional) | Genotype for one separately modelled common high-impact component, such as 0/1/2 effect alleles |
-| `APOE` (optional) | Genotype matching the high-impact reference |
-| `RV_status` (optional) | Delimited list of IDs matching the RV reference |
+| `High_impact_genotype` (optional) | Value matching `High_impact_genotype` in the generic reference, such as 0/1/2 effect alleles |
+| `APOE_genotype` (optional) | Value matching `APOE_genotype` in the six-genotype APOE reference |
+| `RV_IDs` (optional) | Delimited values matching `RV_IDs` in the RV reference |
 
-`High_impact` and `APOE` illustrate alternative uses of one high-impact layer;
-do not add both in the same calculation. All names can be configured through
-`id_col`, `prs_col`, `group_col`, `apoe_col` or `high_impact_col`, and
-`rv_status_col`. Instead of `RV_status`, `rv_columns` can map
+`High_impact_genotype` and `APOE_genotype` illustrate alternative uses of one high-impact layer;
+do not add both in the same calculation. Calculation-input names can be
+configured through `id_col`, `prs_col`, `apoe_col` or `high_impact_col`, and
+`rv_status_col`. The optional `Group` column is preserved unchanged for later
+analysis or plotting. Instead of `RV_IDs`, `rv_columns` can map
 RV-reference IDs to separate logical or 0/1 columns. An empty status means no
 carried RV. Unknown RV IDs and unknown APOE genotypes produce errors.
 
@@ -110,7 +119,7 @@ lower-level interface accepts a long table with:
 | Field | Definition |
 |---|---|
 | `ID` | Individual identifier matching the PRS input |
-| `Variant_ID` | Identifier matching `ID` in the RV reference |
+| `Variant_ID` | Identifier matching `RV_IDs` in the RV reference |
 | `Carrier` | `TRUE`/`FALSE` or `1`/`0` |
 
 Use `prepare_rv_carrier_matrix()` to convert this table to the matrix required
@@ -125,16 +134,20 @@ The files under `inst/extdata/example/` are synthetic demonstrations only:
   groups for separate group-specific PRS distributions. The synthetic example
   contains 200 observations for each APOE genotype, balanced as 100 controls
   and 100 cases;
-- `example_apoe_status.csv`: a separate individual-level ID/APOE genotype
+- `example_apoe_status.csv`: a separate individual-level ID/APOE-genotype
   record joined to the PRS input by ID;
 - `example_target_prs_observed.csv`: synthetic target scores before liability
   conversion;
 - `example_reference_prs_observed.csv`: synthetic matching population-reference
   scores used for conversion and liability-scale R² estimation;
-- `example_rv_reference.csv`: three illustrative RV effects;
+- `example_rv_reference.csv`: three hypothetical RV effects;
 - `example_rv_carriers.csv`: presence-only carrier rows, including people with
   one RV and more than one RV;
-- `example_apoe_reference.csv`: illustrative case/control genotype frequencies.
+- `example_apoe_reference.csv`: hypothetical case/control genotype frequencies.
+
+Copyable starting schemas are provided under `inst/extdata/templates/` for the
+individual table, RV reference, APOE reference, and generic high-impact
+reference. Locate them after installation with `tiger_template_file()`.
 
 Do not place identifiable individual-level data in a public repository.
 
@@ -146,11 +159,8 @@ PRSs consistently and perform the required liability conversion before using
 TIGER. See [`LIABILITY_PRS_GUIDE.md`](LIABILITY_PRS_GUIDE.md) and the runnable
 `examples/liability_conversion_example.R`.
 
-## Redistribution and provenance
+## Data boundary and provenance
 
-The software licence does not automatically grant rights to third-party data.
-Each distributed workbook must carry its original study citation, provenance
-and applicable reuse terms. Where redistribution is not permitted, distribute a
-download script or a synthetic schema example instead of the source workbook.
-
-Never commit individual-level genotype or phenotype data.
+Do not add identifiable individual data or third-party reference datasets to
+the package. Keep empirical inputs outside the repository and document their
+citations, provenance, definitions, and reuse terms in the applied analysis.

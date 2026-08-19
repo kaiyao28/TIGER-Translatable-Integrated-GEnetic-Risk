@@ -1,4 +1,4 @@
-ID,Symbol,Class,Case_freq,Control_freq,OR
-RISK_A,GENE_A,PTV,0.010,0.002,8.0
-RISK_B,GENE_B,Damaging_missense,0.015,0.005,4.0
-PROTECT_C,GENE_C,Protective,0.003,0.008,0.4
+RV_IDs,Symbol,Class,Case_freq,Control_freq,OR
+RISK_A,GENE_A,Hypothetical_risk,0.010,0.002,8.0
+RISK_B,GENE_B,Hypothetical_risk,0.015,0.005,4.0
+PROTECT_C,GENE_C,Hypothetical_protective,0.003,0.008,0.4

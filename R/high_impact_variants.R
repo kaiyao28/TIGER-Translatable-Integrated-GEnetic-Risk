@@ -7,13 +7,21 @@
 # each sum to one across the mutually exclusive genotype categories.
 prepare_high_impact_reference <- function(x, tolerance = 1e-8) {
   if (!is.data.frame(x)) stop("x must be a data.frame")
-  required <- c("Genotype", "Case_freq", "Control_freq")
-  missing <- setdiff(required, names(x))
-  if (length(missing)) stop("Missing column(s): ", paste(missing, collapse = ", "))
+  normalise <- function(z) tolower(gsub("[^[:alnum:]]", "", z))
+  keys <- normalise(names(x))
+  locate <- function(aliases) {
+    hit <- match(normalise(aliases), keys, nomatch = 0L)
+    hit <- hit[hit > 0L]
+    if (!length(hit)) stop("Missing column: ", aliases[1])
+    names(x)[hit[1]]
+  }
+  genotype <- locate(c("Genotype", "APOE_genotype", "High_impact_genotype"))
+  case_frequency <- locate(c("Case_freq", "Case_frequency"))
+  control_frequency <- locate(c("Control_freq", "Control_frequency"))
   out <- data.frame(
-    Genotype = as.character(x$Genotype),
-    Case_freq = as.numeric(x$Case_freq),
-    Control_freq = as.numeric(x$Control_freq),
+    Genotype = as.character(x[[genotype]]),
+    Case_freq = as.numeric(x[[case_frequency]]),
+    Control_freq = as.numeric(x[[control_frequency]]),
     stringsAsFactors = FALSE
   )
   if (!nrow(out) || anyNA(out) || any(!nzchar(out$Genotype)) ||

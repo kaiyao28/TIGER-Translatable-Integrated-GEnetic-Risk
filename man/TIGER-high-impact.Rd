@@ -34,7 +34,10 @@ high_impact_method_probability(
 )
 }
 \arguments{
-  \item{x}{Data frame with unique \code{Genotype}, \code{Case_freq} and \code{Control_freq} columns. Case and control frequencies must each sum to one.}
+  \item{x}{Data frame with a unique \code{High_impact_genotype} or
+  \code{APOE_genotype} column, plus \code{Case_freq} and \code{Control_freq}.
+  \code{Genotype} is accepted as an alias. Case and control frequencies must
+  each sum to one.}
   \item{tolerance}{Numerical tolerance used when checking frequency sums.}
   \item{case_allele_frequencies, control_allele_frequencies}{Named e2, e3 and e4 allele-frequency vectors for cases and controls.}
   \item{case_effect_allele_frequency, control_effect_allele_frequency}{Effect-allele frequencies in cases and controls for one biallelic variant.}

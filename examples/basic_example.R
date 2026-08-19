@@ -37,8 +37,8 @@ probabilities <- data.frame(
   )
 )
 
-# Example damaging RV with OR 8 and protective RV with OR 0.4. SP = 0.50 is the
-# balanced-sample RV default; change it only for a justified application level.
+# Hypothetical damaging RV with OR 8 and protective RV with OR 0.4. SP = 0.50
+# is the balanced-sample RV default; change it only for a justified scale.
 p_damaging <- intrinsic_rv_probability(8, prevalence = SP)
 p_protective <- intrinsic_rv_probability(0.4, prevalence = SP)
 probabilities$BPC_plus_damaging_RV <- apply_rv_probability(
@@ -48,7 +48,7 @@ probabilities$BPC_plus_protective_RV <- apply_rv_probability(
   probabilities$BPC, p_protective = p_protective
 )
 
-# Common high-impact example: APOE frequencies are illustrative only. In an AD
+# Common high-impact example: APOE frequencies are hypothetical only. In an AD
 # application, exclude the separately modelled APOE region from the PRS and
 # replace these values with justified population-matched evidence.
 apoe_reference <- apoe_genotype_reference(

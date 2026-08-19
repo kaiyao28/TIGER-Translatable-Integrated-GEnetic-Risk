@@ -47,8 +47,8 @@ individuals <- data.frame(
   participant_id = c("P001", "P002", "P003"),
   Group = c("Control", "Case", "Case"),
   PRS_liability = c(-0.42, 0.31, 0.18),
-  RV_status = c("", "RISK_A", "RISK_A;PROTECT_C"),
-  APOE = c("e3/e3", "e3/e4", "e4/e4")
+  RV_IDs = c("", "RISK_A", "RISK_A;PROTECT_C"),
+  APOE_genotype = c("e3/e3", "e3/e4", "e4/e4")
 )
 
 rv_reference <- prepare_rv_reference(read.csv(
@@ -62,15 +62,15 @@ results <- tiger_probabilities(
   individuals, K = K, SP = 0.50,
   method = "PAIR (summary)",
   id_col = "participant_id", prs_col = "PRS_liability",
-  group_col = "Group", r2_liability = r2_liability,
+  r2_liability = r2_liability,
   include_rv = TRUE, rv_reference = rv_reference,
-  rv_status_col = "RV_status", rv_prevalence = 0.50,
-  include_apoe = TRUE, apoe_col = "APOE",
+  rv_status_col = "RV_IDs", rv_prevalence = 0.50,
+  include_apoe = TRUE, apoe_col = "APOE_genotype",
   apoe_reference = apoe_reference
 )
 ```
 
-`RV_status` lists reference IDs separated by semicolons, commas, or vertical
+`RV_IDs` lists values from RV-reference `RV_IDs`, separated by semicolons, commas, or vertical
 bars. Alternatively, use separate 0/1 columns and map them explicitly:
 
 ```r
@@ -85,7 +85,7 @@ results <- tiger_probabilities(
 )
 ```
 
-The names on the left must match `ID` in the RV reference. The values on the
+The names on the left must match `RV_IDs` in the RV reference. The values on the
 right name columns in the individual table. The original columns are preserved
 and output rows remain aligned to their input IDs.
 
@@ -139,7 +139,7 @@ apoe_match <- match(individuals$ID, apoe_status$ID)
 if (anyNA(apoe_match)) {
   stop("APOE status is missing for one or more individuals")
 }
-individuals$APOE <- apoe_status$APOE[apoe_match]
+individuals$APOE_genotype <- apoe_status$APOE_genotype[apoe_match]
 ```
 
 Never join individual files by assumed row order.
@@ -165,7 +165,7 @@ p_prs <- pair_probability_summary(
 # PRS + APOE
 p_prs_apoe <- high_impact_method_probability(
   individuals$PRS_liability,
-  individuals$APOE,
+  individuals$APOE_genotype,
   apoe_reference,
   K = K, SP = SP, method = "PAIR (summary)",
   r2_liability = r2l
@@ -222,7 +222,7 @@ may be used alone or both may be included.
 results <- data.frame(
   ID = individuals$ID,
   PRS_liability = individuals$PRS_liability,
-  APOE = individuals$APOE,
+  APOE_genotype = individuals$APOE_genotype,
   RV_count = rv_result$RV_count,
   Probability_PRS = p_prs,
   Probability_PRS_RV = rv_result$probability_after,
@@ -307,13 +307,13 @@ plot_tiger_apoe_rv_carrier_points(
   probability_prs = p_prs,
   apoe_reference = apoe_reference,
   carrier_prs = individuals$PRS_liability[carrier_index],
-  carrier_apoe = individuals$APOE[carrier_index],
+  carrier_apoe = individuals$APOE_genotype[carrier_index],
   carrier_probability_before_rv = p_prs_apoe[carrier_index],
   carrier_probability_after_rv =
     combined_result$probability_after[carrier_index],
   rv_count = rv_result$RV_count[carrier_index],
   prs_group = individual_group,
-  prs_apoe = individuals$APOE,
+  prs_apoe = individuals$APOE_genotype,
   rv_labels = rv_labels,
   carrier_group = carrier_group,
   group_colours = group_colours,

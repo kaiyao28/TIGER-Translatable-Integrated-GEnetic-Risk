@@ -1,0 +1,3 @@
+RV_IDs,Symbol,Class,Case_freq,Control_freq,Population_freq,OR
+RISK_A,GENE_A,PTV,0.010,0.002,,8.0
+PROTECT_C,REGION_C,CNV,0.003,0.008,,0.4

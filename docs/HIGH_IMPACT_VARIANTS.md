@@ -12,7 +12,7 @@ preferred:
 
 ```r
 single_variant_reference <- prepare_high_impact_reference(data.frame(
-  Genotype = c("0", "1", "2"),
+  High_impact_genotype = c("0", "1", "2"),
   Case_freq = c(0.64, 0.32, 0.04),
   Control_freq = c(0.81, 0.18, 0.01)
 ))

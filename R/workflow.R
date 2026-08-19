@@ -2,8 +2,7 @@
 # Copyright (C) 2026 TIGER study authors
 # Licensed under GNU GPL v3 or later; distributed WITHOUT ANY WARRANTY.
 
-# Bundled six-genotype APOE reference used by the worked example. Users should
-# replace it when population- and phenotype-matched frequencies are available.
+# Hypothetical six-genotype APOE reference used only by the worked example.
 tiger_default_apoe_reference <- function() {
   prepare_high_impact_reference(data.frame(
     Genotype = c("e2/e2", "e2/e3", "e2/e4", "e3/e3", "e3/e4", "e4/e4"),
@@ -114,11 +113,108 @@ tiger_default_apoe_reference <- function() {
   out
 }
 
+# Validate one merged individual table and its optional references before use.
+check_tiger_inputs <- function(
+    data, id_col = "ID", prs_col = "PRS_liability",
+    include_rv = FALSE, rv_reference = NULL,
+    rv_columns = NULL, rv_status_col = NULL, rv_delimiter = "[;,|]",
+    include_high_impact = FALSE, high_impact_col = NULL,
+    high_impact_reference = NULL,
+    include_apoe = FALSE, apoe_col = "APOE_genotype",
+    apoe_reference = NULL, verbose = TRUE) {
+  if (!is.data.frame(data) || !nrow(data)) {
+    stop("data must be a non-empty data.frame")
+  }
+  if (!is.logical(verbose) || length(verbose) != 1L || is.na(verbose)) {
+    stop("verbose must be TRUE or FALSE")
+  }
+  flags <- c(
+    include_rv = include_rv,
+    include_high_impact = include_high_impact,
+    include_apoe = include_apoe
+  )
+  if (!all(vapply(flags, function(x) {
+    is.logical(x) && length(x) == 1L && !is.na(x)
+  }, logical(1)))) {
+    stop("include_rv, include_high_impact, and include_apoe must be TRUE or FALSE")
+  }
+  if (isTRUE(include_high_impact) && isTRUE(include_apoe)) {
+    stop("use either include_high_impact or include_apoe, not both")
+  }
+
+  id_col <- .tiger_column(data, id_col, "id_col")
+  prs_col <- .tiger_column(data, prs_col, "prs_col")
+  ids <- as.character(data[[id_col]])
+  if (anyNA(ids) || any(!nzchar(ids)) || anyDuplicated(ids)) {
+    stop("ID values must be non-missing and unique")
+  }
+  prs <- data[[prs_col]]
+  if (!is.numeric(prs) || any(!is.finite(prs))) {
+    stop("the PRS column must contain finite numeric liability-scale values")
+  }
+
+  prepared_rv <- NULL
+  carrier_matrix <- NULL
+  if (isTRUE(include_rv)) {
+    if (is.null(rv_reference)) {
+      stop("rv_reference is required when include_rv = TRUE")
+    }
+    prepared_rv <- prepare_rv_reference(rv_reference)
+    carrier_matrix <- .tiger_merged_carrier_matrix(
+      data, ids, prepared_rv, rv_columns, rv_status_col, rv_delimiter
+    )
+  }
+
+  prepared_high_impact <- NULL
+  impact_col <- NULL
+  if (isTRUE(include_high_impact) || isTRUE(include_apoe)) {
+    impact_col <- if (isTRUE(include_high_impact)) high_impact_col else apoe_col
+    argument <- if (isTRUE(include_high_impact)) "high_impact_col" else "apoe_col"
+    impact_col <- .tiger_column(data, impact_col, argument)
+    reference <- if (isTRUE(include_high_impact)) {
+      if (is.null(high_impact_reference)) {
+        stop("high_impact_reference is required when include_high_impact = TRUE")
+      }
+      high_impact_reference
+    } else if (is.null(apoe_reference)) {
+      tiger_default_apoe_reference()
+    } else {
+      apoe_reference
+    }
+    prepared_high_impact <- prepare_high_impact_reference(reference)
+    genotype <- as.character(data[[impact_col]])
+    if (anyNA(genotype) || any(!genotype %in% prepared_high_impact$Genotype)) {
+      unknown <- unique(genotype[
+        is.na(genotype) | !genotype %in% prepared_high_impact$Genotype
+      ])
+      stop("unknown or missing genotype value(s): ",
+           paste(unknown, collapse = ", "))
+    }
+  }
+
+  summary <- list(
+    n_individuals = nrow(data),
+    n_rv_reference_rows = if (is.null(prepared_rv)) 0L else nrow(prepared_rv),
+    n_rv_carriers = if (is.null(carrier_matrix)) 0L else
+      sum(rowSums(carrier_matrix) > 0L),
+    n_high_impact_genotypes = if (is.null(prepared_high_impact)) 0L else
+      nrow(prepared_high_impact)
+  )
+  if (isTRUE(verbose)) {
+    message(
+      "TIGER input check passed: ", summary$n_individuals, " individuals, ",
+      summary$n_rv_carriers, " RV carriers, and ",
+      summary$n_high_impact_genotypes, " high-impact genotype categories."
+    )
+  }
+  invisible(summary)
+}
+
 # Calculate aligned TIGER probabilities from one merged individual table.
 tiger_probabilities <- function(
     data, K, SP = 0.5,
     method = c("PAIR (summary)", "BPC", "GenoPred", "PAIR (sample)"),
-    id_col = "ID", prs_col = "PRS_liability", group_col = NULL,
+    id_col = "ID", prs_col = "PRS_liability",
     r2_liability = NULL, reference_prs_liability = NULL,
     r2_observed = NULL, case_mean = NULL, case_sd = NULL,
     control_mean = NULL, control_sd = NULL, n_quantiles = 100,
@@ -127,7 +223,7 @@ tiger_probabilities <- function(
     rv_delimiter = "[;,|]", rv_prevalence = 0.5,
     include_high_impact = FALSE, high_impact_col = NULL,
     high_impact_reference = NULL,
-    include_apoe = FALSE, apoe_col = "APOE", apoe_reference = NULL) {
+    include_apoe = FALSE, apoe_col = "APOE_genotype", apoe_reference = NULL) {
   if (!is.data.frame(data) || !nrow(data)) {
     stop("data must be a non-empty data.frame")
   }
@@ -157,7 +253,6 @@ tiger_probabilities <- function(
   }
   id_col <- .tiger_column(data, id_col, "id_col")
   prs_col <- .tiger_column(data, prs_col, "prs_col")
-  if (!is.null(group_col)) .tiger_column(data, group_col, "group_col")
   ids <- as.character(data[[id_col]])
   if (anyNA(ids) || any(!nzchar(ids)) || anyDuplicated(ids)) {
     stop("ID values must be non-missing and unique")
@@ -209,8 +304,8 @@ tiger_probabilities <- function(
     } else if (is.null(apoe_reference)) {
       reference <- tiger_default_apoe_reference()
       message(
-        "Using TIGER's bundled APOE reference. Supply apoe_reference to ",
-        "use population- and phenotype-matched frequencies."
+        "Using TIGER's hypothetical APOE example. Supply apoe_reference to ",
+        "use reviewed population- and phenotype-matched frequencies."
       )
       reference
     } else {

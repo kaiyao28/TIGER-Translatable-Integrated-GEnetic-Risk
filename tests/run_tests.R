@@ -8,6 +8,10 @@ if (file.exists("R/tiger.R")) {
 } else {
   library(TIGER)
 }
+stopifnot(all(file.exists(vapply(c(
+  "individual_template.csv", "rv_reference_template.csv",
+  "apoe_reference_template.csv", "high_impact_reference_template.csv"
+), tiger_template_file, character(1)))))
 
 K <- 0.01
 SP <- 0.5
@@ -83,11 +87,68 @@ stopifnot(all(apply_rv_probability(baseline, p_protective = p_pro) <= baseline))
 stopifnot(abs(combine_independent_rv_probabilities(c(0.2, 0.3)) - 0.44) < 1e-12)
 
 reference_table <- data.frame(
-  Symbol = c("RISK1", "PRO1"), Case_freq = c(0.01, 0.002),
+  ID = c("RISK1", "PRO1"), Symbol = c("RISK1", "PRO1"),
+  Case_freq = c(0.01, 0.002),
   Control_freq = c(0.001, 0.004), OR = c(5, 0.5)
 )
 clean <- prepare_rv_reference(reference_table)
 stopifnot(nrow(clean) == 2L, identical(clean$Direction, c("Damaging", "Protective")))
+minimal_reference <- prepare_rv_reference(data.frame(
+  id = c("RISK1", "PRO1"), or = c(5, 0.5)
+))
+matching_name_reference <- prepare_rv_reference(data.frame(
+  RV_IDs = c("RISK2", "PRO2"), OR = c(4, 0.4)
+))
+stopifnot(
+  identical(minimal_reference$ID, c("RISK1", "PRO1")),
+  identical(matching_name_reference$ID, c("RISK2", "PRO2")),
+  identical(minimal_reference$Symbol, c("RISK1", "PRO1")),
+  all(is.na(minimal_reference$Case_freq)),
+  all(is.na(minimal_reference$Control_freq))
+)
+
+matching_apoe_reference <- prepare_high_impact_reference(data.frame(
+  APOE_genotype = c("e3/e3", "e3/e4"),
+  Case_freq = c(0.6, 0.4), Control_freq = c(0.8, 0.2)
+))
+matching_generic_reference <- prepare_high_impact_reference(data.frame(
+  High_impact_genotype = c("0", "1"),
+  Case_freq = c(0.7, 0.3), Control_freq = c(0.9, 0.1)
+))
+stopifnot(
+  identical(matching_apoe_reference$Genotype, c("e3/e3", "e3/e4")),
+  identical(matching_generic_reference$Genotype, c("0", "1"))
+)
+frequency_reference <- prepare_rv_reference(data.frame(
+  ID = c("RISK1", "PRO1"),
+  Case_freq = c(0.01, 0.002),
+  Control_freq = c(0.001, 0.004)
+))
+expected_frequency_or <-
+  (frequency_reference$Case_freq / (1 - frequency_reference$Case_freq)) /
+  (frequency_reference$Control_freq /
+     (1 - frequency_reference$Control_freq))
+stopifnot(
+  max(abs(frequency_reference$OR - expected_frequency_or)) < 1e-12,
+  all(frequency_reference$OR_source == "Calculated from frequencies")
+)
+population_fallback_reference <- prepare_rv_reference(data.frame(
+  ID = "RISK1", Case_freq = 0.01, Control_freq = NA_real_,
+  Population_freq = 0.002
+))
+stopifnot(
+  population_fallback_reference$Control_freq == 0.002,
+  population_fallback_reference$Control_freq_source == "Population frequency",
+  abs(population_fallback_reference$OR -
+      ((0.01 / 0.99) / (0.002 / 0.998))) < 1e-12
+)
+incomplete_frequency_reference <- data.frame(
+  ID = "RISK1", Case_freq = 0.01
+)
+stopifnot(inherits(
+  try(prepare_rv_reference(incomplete_frequency_reference), silent = TRUE),
+  "try-error"
+))
 duplicate_reference <- transform(reference_table, ID = c("RV1", "RV1"))
 stopifnot(inherits(try(prepare_rv_reference(duplicate_reference), silent = TRUE),
                      "try-error"))
@@ -108,17 +169,6 @@ stopifnot(
   ad_lof_test$ID == "LOF:GENE2", ad_lof_test$Class == "LOF",
   ad_lof_test$OR == 4
 )
-if (requireNamespace("readxl", quietly = TRUE)) {
-  stopifnot(
-    nrow(read_tiger_reference(
-      tiger_reference_file("SCZ", "SCZ_PTV.xlsx"), "SCZ", "PTV"
-    )) > 0,
-    nrow(read_tiger_reference(
-      tiger_reference_file("AD", "AD_LOF.xlsx"), "AD", "LOF"
-    )) > 0
-  )
-}
-
 apoe_reference <- apoe_genotype_reference(
   c(e2 = 0.04, e3 = 0.66, e4 = 0.30),
   c(e2 = 0.08, e3 = 0.79, e4 = 0.13)
@@ -233,18 +283,35 @@ merged <- data.frame(
   stringsAsFactors = FALSE
 )
 workflow_rv_reference <- data.frame(
-  ID = c("D1", "P1"), Symbol = c("D1", "P1"), Class = "RV",
-  Case_freq = c(0.01, 0.002), Control_freq = c(0.001, 0.004),
-  OR = c(5, 0.5)
+  ID = c("D1", "P1"), OR = c(5, 0.5)
 )
 workflow <- tiger_probabilities(
   merged, K = K, SP = SP, method = "PAIR (summary)",
-  id_col = "participant", prs_col = "score", group_col = "study_group",
+  id_col = "participant", prs_col = "score",
   r2_liability = r2l, include_rv = TRUE,
   rv_reference = workflow_rv_reference, rv_status_col = "rv_status",
   rv_prevalence = K, include_apoe = TRUE, apoe_col = "genotype",
   apoe_reference = apoe_reference
 )
+input_check <- check_tiger_inputs(
+  merged, id_col = "participant", prs_col = "score",
+  include_rv = TRUE, rv_reference = workflow_rv_reference,
+  rv_status_col = "rv_status",
+  include_apoe = TRUE, apoe_col = "genotype",
+  apoe_reference = apoe_reference, verbose = FALSE
+)
+stopifnot(
+  input_check$n_individuals == 4L,
+  input_check$n_rv_reference_rows == 2L,
+  input_check$n_rv_carriers == 3L,
+  input_check$n_high_impact_genotypes == 6L
+)
+bad_merged <- transform(merged, rv_status = c("", "UNKNOWN", "", ""))
+stopifnot(inherits(try(check_tiger_inputs(
+  bad_merged, id_col = "participant", prs_col = "score",
+  include_rv = TRUE, rv_reference = workflow_rv_reference,
+  rv_status_col = "rv_status", verbose = FALSE
+), silent = TRUE), "try-error"))
 manual_prs <- pair_probability_summary(merged$score, K, SP, r2l)
 manual_matrix <- matrix(
   c(FALSE, TRUE, FALSE, TRUE, FALSE, FALSE, TRUE, TRUE),
@@ -275,6 +342,14 @@ stopifnot(
   nrow(attr(workflow, "TIGER_RV_reference")) == 2L,
   nrow(attr(workflow, "TIGER_APOE_reference")) == 6L
 )
+default_apoe_merged <- transform(merged, APOE_genotype = genotype)
+default_apoe_workflow <- tiger_probabilities(
+  default_apoe_merged, K = K, SP = SP, method = "PAIR (summary)",
+  id_col = "participant", prs_col = "score", r2_liability = r2l,
+  include_apoe = TRUE, apoe_reference = apoe_reference
+)
+stopifnot(max(abs(default_apoe_workflow$Probability_PRS_APOE -
+                  manual_apoe)) < 1e-12)
 single_variant_merged <- transform(
   merged, variant_genotype = c("0", "1", "1", "2")
 )

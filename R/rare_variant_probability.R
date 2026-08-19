@@ -45,8 +45,9 @@ apply_rv_probability <- function(p_prs, p_damaging = 0,
   pmin(pmax(result, 0), 1)
 }
 
-# Validate the reusable reference schema. Each row represents one RV and must
-# contain Symbol, Case_freq, Control_freq and OR; ID and Class are optional.
+# Validate the reusable reference schema. Each row represents one RV. ID plus
+# either OR or frequencies are required. Missing control frequency may be
+# replaced by a supplied population frequency before OR calculation.
 prepare_rv_reference <- function(x, source = "RV") {
   if (!is.data.frame(x)) stop("x must be a data.frame")
   normalise <- function(z) tolower(gsub("[^[:alnum:]]", "", z))
@@ -58,23 +59,69 @@ prepare_rv_reference <- function(x, source = "RV") {
     if (required) stop("Missing column: ", aliases[1])
     NULL
   }
-  symbol <- locate(c("Symbol", "Label", "Variant"))
-  case_frequency <- locate(c("Case_freq", "Case_frequency"))
-  control_frequency <- locate(c("Control_freq", "Control_frequency"))
-  odds_ratio <- locate(c("OR", "Odds_ratio"))
-  id <- locate(c("ID", "Variant_ID"), FALSE)
-  class <- locate(c("Class", "Variant_class", "Type"), FALSE)
-  output <- data.frame(
-    ID = if (is.null(id)) paste0(source, ":", x[[symbol]]) else x[[id]],
-    Symbol = as.character(x[[symbol]]),
-    Class = if (is.null(class)) source else as.character(x[[class]]),
-    Case_freq = as.numeric(x[[case_frequency]]),
-    Control_freq = as.numeric(x[[control_frequency]]),
-    OR = as.numeric(x[[odds_ratio]]), stringsAsFactors = FALSE
+  id <- locate(c("RV_IDs", "RV_ID", "ID", "Variant_ID"))
+  symbol <- locate(c("Symbol", "Label", "Variant"), FALSE)
+  case_frequency <- locate(c("Case_freq", "Case_frequency"), FALSE)
+  control_frequency <- locate(c("Control_freq", "Control_frequency"), FALSE)
+  population_frequency <- locate(
+    c("Population_freq", "Population_frequency", "Pop_freq"), FALSE
   )
-  valid <- stats::complete.cases(output) &
-    output$Case_freq >= 0 & output$Case_freq <= 1 &
-    output$Control_freq >= 0 & output$Control_freq <= 1 & output$OR > 0
+  odds_ratio <- locate(c("OR", "Odds_ratio"), FALSE)
+  if (is.null(odds_ratio) &&
+      (is.null(case_frequency) ||
+       (is.null(control_frequency) && is.null(population_frequency)))) {
+    stop(
+      "Supply OR, or supply Case_freq with Control_freq or Population_freq"
+    )
+  }
+  class <- locate(c("Class", "Variant_class", "Type"), FALSE)
+  ids <- x[[id]]
+  symbols <- if (is.null(symbol)) ids else x[[symbol]]
+  numeric_column <- function(column) {
+    if (is.null(column)) rep(NA_real_, nrow(x)) else as.numeric(x[[column]])
+  }
+  case_values <- numeric_column(case_frequency)
+  control_values <- numeric_column(control_frequency)
+  population_values <- numeric_column(population_frequency)
+  control_replaced <- !is.finite(control_values) & is.finite(population_values)
+  control_values[control_replaced] <- population_values[control_replaced]
+  or_values <- numeric_column(odds_ratio)
+  or_source <- ifelse(is.finite(or_values) & or_values > 0, "Supplied", NA_character_)
+  derive_or <- is.na(or_source)
+  derivable <- derive_or & is.finite(case_values) & is.finite(control_values) &
+    case_values > 0 & case_values < 1 &
+    control_values > 0 & control_values < 1
+  or_values[derivable] <-
+    (case_values[derivable] / (1 - case_values[derivable])) /
+    (control_values[derivable] / (1 - control_values[derivable]))
+  or_source[derivable] <- "Calculated from frequencies"
+  output <- data.frame(
+    ID = as.character(ids),
+    Symbol = as.character(symbols),
+    Class = if (is.null(class)) source else as.character(x[[class]]),
+    Case_freq = case_values,
+    Control_freq = control_values,
+    Population_freq = population_values,
+    OR = or_values,
+    OR_source = or_source,
+    Control_freq_source = ifelse(
+      control_replaced, "Population frequency",
+      ifelse(is.finite(control_values), "Control frequency", NA_character_)
+    ),
+    stringsAsFactors = FALSE
+  )
+  valid <- !is.na(output$ID) & nzchar(output$ID) &
+    !is.na(output$Symbol) & nzchar(output$Symbol) &
+    !is.na(output$Class) & nzchar(output$Class) &
+    is.finite(output$OR) & output$OR > 0
+  supplied_frequency_values <- cbind(
+    output$Case_freq, output$Control_freq, output$Population_freq
+  )
+  invalid_frequency <- apply(supplied_frequency_values, 1, function(z) {
+    z <- z[!is.na(z)]
+    any(!is.finite(z) | z < 0 | z > 1)
+  })
+  valid <- valid & !invalid_frequency
   if (any(!valid)) warning(sum(!valid), " invalid RV rows removed")
   output <- output[valid, , drop = FALSE]
   if (!nrow(output)) stop("No valid RV rows remain")

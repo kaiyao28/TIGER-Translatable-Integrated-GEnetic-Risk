@@ -1,4 +1,4 @@
-# TIGER disorder-specific RV reference harmonisation.
+# Optional adapters for user-supplied disorder-specific RV tables.
 # Copyright (C) 2026 TIGER study authors
 # Licensed under GNU GPL v3 or later; distributed WITHOUT ANY WARRANTY.
 
@@ -72,7 +72,7 @@ harmonise_ad_reference <- function(
   prepare_rv_reference(out, source = paste0("AD_", class))
 }
 
-# Read and harmonise one supplied or user-created Excel reference workbook.
+# Read and harmonise one user-supplied Excel reference workbook.
 read_tiger_reference <- function(path, disorder = c("SCZ", "AD"), class) {
   if (!requireNamespace("readxl", quietly = TRUE)) {
     stop("read_tiger_reference() requires the readxl package")

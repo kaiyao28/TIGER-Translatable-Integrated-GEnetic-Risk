@@ -18,14 +18,14 @@
 \alias{harmonise_scz_reference}
 \alias{harmonise_ad_reference}
 \alias{read_tiger_reference}
-\alias{tiger_example_file}
-\alias{tiger_reference_file}
 \title{TIGER probability and input functions}
 \description{
 Public functions for preparing liability-scale PRS inputs, estimating absolute
 probabilities, preparing input references, and applying rare-variant carrier
 effects. Each implementation is available as plain R
 source in the package's \code{R/} directory.
+Included example inputs are synthetic or hypothetical. TIGER does not
+distribute study-specific or literature-derived reference datasets.
 }
 \details{
 Use \code{pair_probability_summary()} as the default worked-example method.
@@ -33,4 +33,13 @@ Read the repository's docs/GETTING_STARTED.md, docs/USAGE.md and docs/METHODS.md
 the functions to study data. In particular, exclude any separately modelled
 region from the PRS and use compatible liability-scale inputs.
 Use \code{genopred_probability()} for the GenoPred conversion.
+
+For \code{prepare_rv_reference()}, each row requires a unique \code{RV_IDs} and
+either a positive \code{OR} or frequencies from which to calculate it. The
+calculation is \code{[Case_freq/(1-Case_freq)] /
+[Control_freq/(1-Control_freq)]}. A supplied \code{Population_freq} replaces a
+missing \code{Control_freq}. The returned source columns record these choices.
+\code{RV_IDs} is matched to the individual carrier-status field. \code{ID},
+\code{RV_ID}, and \code{Variant_ID} are accepted aliases. \code{Symbol} and
+\code{Class} are optional annotations. Column matching is case-insensitive.
 }

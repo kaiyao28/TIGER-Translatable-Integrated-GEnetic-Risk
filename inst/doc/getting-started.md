@@ -27,6 +27,10 @@ results <- tiger_probabilities(
 )
 ```
 
+Before calculation, `check_tiger_inputs()` can validate IDs, liability-scale
+PRS values, RV matching, and high-impact genotype matching. Hypothetical CSV
+schemas are available through `tiger_template_file()`.
+
 When modelling a high-impact component separately, exclude that variant or LD
 region from the PRS and its R-squared estimate. The RV probability prior is
 `0.50` for a balanced case-control analysis. Use a population-level prior only
