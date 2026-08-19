@@ -30,7 +30,8 @@ All included data and reference values are synthetic or hypothetical.
 install.packages("remotes") # once, if needed
 remotes::install_github(
   "kaiyao28/TIGER-Translatable-Integrated-Genetic-Risk",
-  build_vignettes = FALSE
+  build_vignettes = FALSE,
+  force = TRUE
 )
 library(TIGER)
 ```
